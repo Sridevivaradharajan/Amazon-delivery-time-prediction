@@ -23,10 +23,8 @@ st.set_page_config(
 )
 
 @st.cache_resource
-def load_model_from_drive(file_id):
-    url = f"https://drive.google.com/uc?export=download&id={file_id}"
+def load_model_from_github(url):
     response = requests.get(url)
-    
     if response.status_code == 200:
         try:
             model = pickle.load(BytesIO(response.content))
@@ -35,19 +33,19 @@ def load_model_from_drive(file_id):
             st.error(f"Error loading model: {e}")
             return None
     else:
-        st.error("Failed to download the model.")
+        st.error("Failed to fetch model from GitHub.")
         return None
 
-# Google Drive file ID
-file_id = '14bpwlmue2FZo1-lCwu7kCCLlJkAET4eo'
+# Replace with your raw GitHub file URL
+github_url = "https://github.com/Sridevivaradharajan/Amazon-delivery-time-prediction/blob/main/Model.pkl"
 
-# Load the model
-model = load_model_from_drive(file_id)
+model = load_model_from_github(github_url)
 
 if model:
-    st.success("Model loaded successfully!")
+    st.success("Model loaded successfully from GitHub!")
 else:
     st.error("Model could not be loaded.")
+
 
 # Professional Custom CSS
 st.markdown("""
@@ -1209,6 +1207,7 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
 
