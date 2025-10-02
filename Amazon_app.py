@@ -9,6 +9,30 @@ from datetime import datetime, time
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import warnings
 warnings.filterwarnings('ignore')
+import requests
+import pickle
+import lightgbm as lgb
+from io import BytesIO
+
+def load_model_from_drive(file_id):
+    url = f"https://drive.google.com/uc?id={file_id}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        model = pickle.load(BytesIO(response.content))
+        return model
+    else:
+        st.error("Failed to download the model.")
+        return None
+
+# Extract the file ID from the Google Drive link
+file_id = '14bpwlmue2FZo1-lCwu7kCCLlJkAET4eo'
+
+# Load the model
+model = load_model_from_drive(file_id)
+
+if model:
+    st.success("Model loaded successfully!")
+    # Now you can use the model for predictions
 
 # Page configuration
 st.set_page_config(
@@ -1176,4 +1200,5 @@ def main():
         about_page()
 
 if __name__ == "__main__":
+
     main()
