@@ -36,8 +36,8 @@ def load_model_from_github(url):
         st.error("Failed to fetch model from GitHub.")
         return None
 
-# Replace with your raw GitHub file URL
-github_url = "https://github.com/Sridevivaradharajan/Amazon-delivery-time-prediction/blob/main/Model.pkl"
+# ✅ Use RAW GitHub URL
+github_url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/main/Model.pkl"
 
 model = load_model_from_github(github_url)
 
@@ -1207,6 +1207,7 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
 
