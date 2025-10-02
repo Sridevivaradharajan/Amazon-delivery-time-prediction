@@ -15,16 +15,22 @@ import lightgbm as lgb
 from io import BytesIO
 
 def load_model_from_drive(file_id):
-    url = f"https://drive.google.com/uc?id={file_id}"
+    # Use the direct download URL
+    url = f"https://drive.google.com/uc?export=download&id={file_id}"
     response = requests.get(url)
+    
     if response.status_code == 200:
-        model = pickle.load(BytesIO(response.content))
-        return model
+        try:
+            model = pickle.load(BytesIO(response.content))
+            return model
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
+            return None
     else:
         st.error("Failed to download the model.")
         return None
 
-# Extract the file ID from the Google Drive link
+# Google Drive file ID
 file_id = '14bpwlmue2FZo1-lCwu7kCCLlJkAET4eo'
 
 # Load the model
@@ -32,7 +38,9 @@ model = load_model_from_drive(file_id)
 
 if model:
     st.success("Model loaded successfully!")
-    # Now you can use the model for predictions
+else:
+    st.error("Model could not be loaded.")
+
 
 # Page configuration
 st.set_page_config(
@@ -1202,3 +1210,4 @@ def main():
 if __name__ == "__main__":
 
     main()
+
