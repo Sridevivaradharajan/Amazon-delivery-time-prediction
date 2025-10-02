@@ -22,8 +22,8 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+@st.cache_resource
 def load_model_from_drive(file_id):
-    # Use the direct download URL
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
     response = requests.get(url)
     
@@ -1209,5 +1209,6 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
