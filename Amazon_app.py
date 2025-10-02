@@ -14,6 +14,14 @@ import pickle
 import lightgbm as lgb
 from io import BytesIO
 
+# Page configuration
+st.set_page_config(
+    page_title="Amazon Delivery Time Predictor",
+    page_icon="📦",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 def load_model_from_drive(file_id):
     # Use the direct download URL
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
@@ -40,15 +48,6 @@ if model:
     st.success("Model loaded successfully!")
 else:
     st.error("Model could not be loaded.")
-
-
-# Page configuration
-st.set_page_config(
-    page_title="Amazon Delivery Time Predictor",
-    page_icon="📦",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Professional Custom CSS
 st.markdown("""
@@ -1210,4 +1209,5 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
