@@ -9,10 +9,6 @@ from datetime import datetime, time
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import warnings
 warnings.filterwarnings('ignore')
-import requests
-import pickle
-import lightgbm as lgb
-from io import BytesIO
 
 # Page configuration
 st.set_page_config(
@@ -21,6 +17,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
 
 @st.cache_resource
 def load_model_from_github(url, loader="pickle"):
@@ -50,8 +47,8 @@ if model:
     st.success("Model loaded successfully from GitHub!")
 else:
     st.error("Model could not be loaded from GitHub.")
-    
-# Professional Custom CSS
+
+# Custom CSS for enhances styling
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -144,8 +141,28 @@ st.markdown("""
         background: linear-gradient(180deg, #1a202c 0%, #2d3748 100%);
     }
     
+    section[data-testid="stSidebar"] * {
+        color: white !important;
+    }
+    
+    section[data-testid="stSidebar"] h2 {
+        color: white !important;
+        font-weight: 700 !important;
+        margin-bottom: 20px !important;
+    }
+    
+    section[data-testid="stSidebar"] .stRadio > label {
+        color: white !important;
+        font-weight: 600 !important;
+        font-size: 16px !important;
+    }
+    
+    section[data-testid="stSidebar"] label {
+        color: white !important;
+    }
+    
     .stSelectbox label, .stNumberInput label, .stTimeInput label, .stDateInput label {
-        color: #2d3748;
+        color: #2d3748 !important;
         font-weight: 500;
         font-size: 14px;
     }
@@ -254,104 +271,142 @@ def prepare_input(data_dict):
 # Home Page
 def home_page(metrics):
     st.markdown("""
-        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                    padding: 60px 40px; border-radius: 16px; text-align: center; 
-                    color: white; box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);'>
-            <h1 style='color: white; font-size: 52px; margin-bottom: 16px; font-weight: 700;'>
+        <style>
+        /* Base style for all metric-card containers */
+        .metric-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 20px 25px;
+            border-radius: 16px;
+            margin: 20px 0;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Purple border */
+        .purple-card {
+            border: 2px solid #764ba2;
+        }
+
+        /* Navy blue border */
+        .navy-card {
+            border: 2px solid #1a237e;
+        }
+
+        /* Make all section headings (except hero h1) light blue */
+        .metric-card h3,
+        h2 {
+            color: #4facfe !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Hero Section
+    st.markdown("""
+        <div style="
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 60px 40px; 
+            border-radius: 20px; 
+            text-align: center; 
+            color: #1a1f36; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+            border: 2px solid #1a237e;
+            margin-bottom: 40px;
+        ">
+            <h1 style='font-size: 48px; font-weight: 700; margin-bottom: 12px; color: #1a1f36;'>
                 Amazon Delivery Time Predictor
             </h1>
-            <p style='font-size: 22px; opacity: 0.95; font-weight: 400; letter-spacing: 0.3px;'>
-                Advanced Machine Learning System for Accurate Delivery Time Estimation
+            <p style='font-size: 20px; font-weight: 400; opacity: 0.9;'>
+                Predict delivery times accurately using advanced machine learning insights
             </p>
         </div>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("<br>", unsafe_allow_html=True)
-    
+
+    # Feature Cards
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.markdown("""
-            <div class='metric-card' style='text-align: center;'>
-                <div style='font-size: 48px; margin-bottom: 12px;'>🎯</div>
-                <h3 style='color: #667eea; margin-bottom: 8px;'>High Accuracy</h3>
-                <p style='color: #718096; font-size: 15px; line-height: 1.6;'>
-                    Advanced LightGBM model optimized with Optuna hyperparameter tuning
+            <div class='metric-card purple-card' style='text-align: center;'>
+                <h3>Precision Delivery</h3>
+                <p style='color: #495057; font-size: 15px; line-height: 1.6;'>
+                    High accuracy delivery time predictions using optimized LightGBM model
                 </p>
             </div>
         """, unsafe_allow_html=True)
-    
+
     with col2:
         st.markdown("""
-            <div class='metric-card' style='text-align: center;'>
-                <div style='font-size: 48px; margin-bottom: 12px;'>⚡</div>
-                <h3 style='color: #667eea; margin-bottom: 8px;'>Real-Time Predictions</h3>
-                <p style='color: #718096; font-size: 15px; line-height: 1.6;'>
-                    Instant delivery time estimates with sub-second response time
+            <div class='metric-card navy-card' style='text-align: center;'>
+                <h3>Real-Time Insights</h3>
+                <p style='color: #495057; font-size: 15px; line-height: 1.6;'>
+                    Instant predictions for single or batch orders with fast processing
                 </p>
             </div>
         """, unsafe_allow_html=True)
-    
+
     with col3:
         st.markdown("""
-            <div class='metric-card' style='text-align: center;'>
-                <div style='font-size: 48px; margin-bottom: 12px;'>📊</div>
-                <h3 style='color: #667eea; margin-bottom: 8px;'>Deep Analytics</h3>
-                <p style='color: #718096; font-size: 15px; line-height: 1.6;'>
-                    Comprehensive delivery insights with interactive visualizations
+            <div class='metric-card purple-card' style='text-align: center;'>
+                <h3>Data-Driven Analytics</h3>
+                <p style='color: #495057; font-size: 15px; line-height: 1.6;'>
+                    Comprehensive dashboards for actionable delivery insights
                 </p>
             </div>
         """, unsafe_allow_html=True)
-    
+
     st.markdown("<br>", unsafe_allow_html=True)
-    
+
+    # Model Performance
     st.markdown("""
-        <h2 style='text-align: center; color: #1a202c; font-weight: 700; margin: 40px 0 30px 0;'>
+        <h2 style='text-align: center; font-weight: 700; margin: 40px 0 30px 0;'>
             Model Performance Metrics
         </h2>
     """, unsafe_allow_html=True)
-    
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.metric(label="R² Score", value=f"{metrics['r2']*100:.2f}%", delta="Excellent Fit")
     with col2:
         st.metric(label="RMSE", value=f"{metrics['rmse']:.2f}", delta="Low Error", delta_color="inverse")
     with col3:
         st.metric(label="MAE", value=f"{metrics['mae']:.2f}", delta="Precise", delta_color="inverse")
-    
+
     st.markdown("<br>", unsafe_allow_html=True)
-    
+
+    # Feature Highlights
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.markdown("""
-            <div class='metric-card'>
-                <h3 style='color: #667eea; margin-bottom: 20px;'>Delivery Prediction</h3>
-                <ul style='color: #4a5568; font-size: 15px; line-height: 2;'>
+            <div class='metric-card navy-card'>
+                <h3>Delivery Prediction</h3>
+                <ul style='color: #495057; font-size: 15px; line-height: 2;'>
                     <li>Single order prediction with detailed insights</li>
-                    <li>Bulk CSV upload for batch processing</li>
-                    <li>Instant time estimates with confidence metrics</li>
-                    <li>Downloadable results in CSV format</li>
+                    <li>Batch CSV upload for multiple orders</li>
+                    <li>Instant delivery time estimates</li>
+                    <li>Downloadable prediction results in CSV</li>
                 </ul>
             </div>
         """, unsafe_allow_html=True)
-    
+
     with col2:
         st.markdown("""
-            <div class='metric-card'>
-                <h3 style='color: #667eea; margin-bottom: 20px;'>Data Analysis</h3>
-                <ul style='color: #4a5568; font-size: 15px; line-height: 2;'>
-                    <li>Upload custom delivery data for analysis</li>
-                    <li>Interactive visualizations and charts</li>
-                    <li>Comprehensive performance metrics</li>
-                    <li>Exportable insights and reports</li>
+            <div class='metric-card purple-card'>
+                <h3>Data Analysis & Reporting</h3>
+                <ul style='color: #495057; font-size: 15px; line-height: 2;'>
+                    <li>Upload custom delivery datasets</li>
+                    <li>Interactive charts and distribution analysis</li>
+                    <li>Insights by distance, area, agent rating, and time</li>
+                    <li>Exportable reports for decision making</li>
                 </ul>
             </div>
         """, unsafe_allow_html=True)
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.info("Use the sidebar to navigate between different sections of the application.")
 
 # Prediction Page
 def prediction_page(model, metrics):
@@ -367,6 +422,7 @@ def prediction_page(model, metrics):
     if model is None:
         return
     
+    # Display model metrics
     col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Model R²", f"{metrics['r2']*100:.2f}%")
@@ -379,6 +435,7 @@ def prediction_page(model, metrics):
     
     tab1, tab2 = st.tabs(["Single Prediction", "Bulk Prediction"])
     
+    # ----------- Single Prediction Tab -----------
     with tab1:
         st.markdown("### Enter Delivery Details")
         
@@ -466,6 +523,15 @@ def prediction_page(model, metrics):
                         </div>
                     """, unsafe_allow_html=True)
                 
+                # --- Days + Hours Display ---
+                days = int(prediction // 24)
+                hours = prediction % 24
+                st.markdown(f"""
+                    <p style='text-align: center; font-size: 20px; color: #2d3748; margin-top: 10px;'>
+                        Estimated Delivery: <strong>{days} day(s) and {hours:.1f} hour(s)</strong>
+                    </p>
+                """, unsafe_allow_html=True)
+                
                 st.markdown("<br>", unsafe_allow_html=True)
                 
                 col1, col2, col3 = st.columns(3)
@@ -488,33 +554,31 @@ def prediction_page(model, metrics):
                 with factors_col1:
                     st.markdown(f"""
                         <div class='metric-card'>
-                            <p style='color: #4a5568; margin: 8px 0;'><strong>Weather:</strong> {weather} conditions</p>
-                            <p style='color: #4a5568; margin: 8px 0;'><strong>Traffic:</strong> {traffic} congestion</p>
-                            <p style='color: #4a5568; margin: 8px 0;'><strong>Vehicle:</strong> {vehicle}</p>
+                            <p style='color: #4a5568; margin: 8px 0; font-size: 16px;'><strong>Weather:</strong> {weather} conditions</p>
+                            <p style='color: #4a5568; margin: 8px 0; font-size: 16px;'><strong>Traffic:</strong> {traffic} congestion</p>
+                            <p style='color: #4a5568; margin: 8px 0; font-size: 16px;'><strong>Vehicle:</strong> {vehicle}</p>
                         </div>
                     """, unsafe_allow_html=True)
                 
                 with factors_col2:
                     st.markdown(f"""
                         <div class='metric-card'>
-                            <p style='color: #4a5568; margin: 8px 0;'><strong>Area:</strong> {area}</p>
-                            <p style='color: #4a5568; margin: 8px 0;'><strong>Category:</strong> {category}</p>
-                            <p style='color: #4a5568; margin: 8px 0;'><strong>Agent Rating:</strong> {agent_rating}/5.0</p>
+                            <p style='color: #4a5568; margin: 8px 0; font-size: 16px;'><strong>Area:</strong> {area}</p>
+                            <p style='color: #4a5568; margin: 8px 0; font-size: 16px;'><strong>Category:</strong> {category}</p>
+                            <p style='color: #4a5568; margin: 8px 0; font-size: 16px;'><strong>Agent Rating:</strong> {agent_rating}/5.0</p>
                         </div>
                     """, unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Error making prediction: {str(e)}")
     
+    # ----------- Bulk Prediction Tab -----------
     with tab2:
         st.markdown("### Upload CSV File for Batch Predictions")
-        
         st.info("Your CSV should contain: Agent_Age, Agent_Rating, Store_Latitude, Store_Longitude, Drop_Latitude, Drop_Longitude, Hour, Month, Prep_Time_Min, Weather, Traffic, Vehicle, Area, Category, DayOfWeek")
         
         col1, col2 = st.columns([2, 1])
-        
         with col1:
             uploaded_file = st.file_uploader("Choose a CSV file", type=['csv'])
-        
         with col2:
             if st.button("Download Sample Template", use_container_width=True):
                 sample_data = pd.DataFrame({
@@ -534,7 +598,6 @@ def prediction_page(model, metrics):
                     'Category': ['Electronics', 'Grocery', 'Clothing'],
                     'DayOfWeek': ['Monday', 'Tuesday', 'Wednesday']
                 })
-                
                 csv = sample_data.to_csv(index=False)
                 st.download_button(
                     label="Download CSV",
@@ -569,30 +632,29 @@ def prediction_page(model, metrics):
                         
                         predictions = model.predict(df)
                         df['Predicted_Delivery_Time'] = predictions
+                        # Add Days + Hours
+                        df['Predicted_Days'] = (predictions // 24).astype(int)
+                        df['Predicted_Hours_Remaining'] = predictions % 24
                     
                     st.success("Predictions completed!")
                     
                     st.markdown("### Prediction Results")
                     
                     col1, col2, col3, col4 = st.columns(4)
-                    
-                    with col1:
-                        st.metric("Total Orders", f"{len(df):,}")
-                    with col2:
-                        st.metric("Avg Time", f"{df['Predicted_Delivery_Time'].mean():.1f} hrs")
-                    with col3:
-                        st.metric("Min Time", f"{df['Predicted_Delivery_Time'].min():.1f} hrs")
-                    with col4:
-                        st.metric("Max Time", f"{df['Predicted_Delivery_Time'].max():.1f} hrs")
+                    with col1: st.metric("Total Orders", f"{len(df):,}")
+                    with col2: st.metric("Avg Time", f"{df['Predicted_Delivery_Time'].mean():.1f} hrs")
+                    with col3: st.metric("Min Time", f"{df['Predicted_Delivery_Time'].min():.1f} hrs")
+                    with col4: st.metric("Max Time", f"{df['Predicted_Delivery_Time'].max():.1f} hrs")
                     
                     st.dataframe(df[['Agent_Age', 'Distance', 'Weather', 'Traffic', 
-                                    'Category', 'Predicted_Delivery_Time']], use_container_width=True)
+                                    'Category', 'Predicted_Delivery_Time', 
+                                    'Predicted_Days', 'Predicted_Hours_Remaining']], use_container_width=True)
                     
                     st.markdown("### Prediction Distribution")
                     
                     fig = px.histogram(df, x='Predicted_Delivery_Time', nbins=30,
-                                     title="Distribution of Predicted Delivery Times",
-                                     color_discrete_sequence=['#667eea'])
+                                     title="Distribution of Predicted Delivery Times")
+                    fig.update_traces(marker_color='#667eea', marker_line_color='white', marker_line_width=1.5)
                     fig.update_layout(
                         xaxis_title="Delivery Time (hours)", 
                         yaxis_title="Count",
@@ -614,7 +676,7 @@ def prediction_page(model, metrics):
                 st.error(f"Error processing file: {str(e)}")
                 st.info("Please ensure your CSV file matches the required format.")
 
-# User Data Analysis Page - ENHANCED WITH COLORS
+# User Data Analysis Page 
 def user_data_analysis_page():
     st.markdown("""
         <h1 style='text-align: center; color: #1a202c; font-weight: 700; margin-bottom: 10px;'>
@@ -625,7 +687,7 @@ def user_data_analysis_page():
         </p>
     """, unsafe_allow_html=True)
     
-    st.info("📁 Upload a CSV file with delivery data to unlock comprehensive insights and visualizations.")
+    st.info("Upload a CSV file with delivery data to unlock comprehensive insights and visualizations.")
     
     uploaded_file = st.file_uploader("Choose a CSV file", type=['csv'], key='user_analysis')
     
@@ -633,7 +695,7 @@ def user_data_analysis_page():
         try:
             df = pd.read_csv(uploaded_file)
             
-            st.success(f"✅ File uploaded successfully! {len(df):,} records loaded and ready for analysis.")
+            st.success(f"File uploaded successfully! {len(df):,} records loaded and ready for analysis.")
             
             # Calculate distance
             if all(col in df.columns for col in ['Store_Latitude', 'Store_Longitude', 'Drop_Latitude', 'Drop_Longitude']):
@@ -642,14 +704,14 @@ def user_data_analysis_page():
                         row['Store_Latitude'], row['Store_Longitude'],
                         row['Drop_Latitude'], row['Drop_Longitude']
                     ), axis=1)
-                    st.info("📍 Distance calculated from coordinates using Haversine formula")
+                    st.info("Distance calculated from coordinates using Haversine formula")
             
             # Data preview
-            st.markdown("### 📊 Data Preview")
+            st.markdown("### Data Preview")
             st.dataframe(df.head(10), use_container_width=True)
             
             # Statistical Summary
-            st.markdown("### 📈 Statistical Summary")
+            st.markdown("### Statistical Summary")
             
             col1, col2 = st.columns(2)
             
@@ -693,444 +755,207 @@ def user_data_analysis_page():
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # Create tabs for organized visualizations
-            st.markdown("### 🎨 Interactive Visualizations")
-            
-            viz_tab1, viz_tab2, viz_tab3, viz_tab4 = st.tabs([
-                "📊 Distributions", "📈 Relationships", "⏰ Time Analysis", "🗺️ Geographic Analysis"
+            # Create tabs for organized visualizations including a new one for quality
+            viz_tab1, viz_tab2, viz_tab3, viz_tab4, viz_tab5 = st.tabs([
+                "Distributions", "Relationships", "Time Analysis", "Geographic Analysis", "Data Quality & Correlation"
             ])
             
             # Tab 1: Distributions
             with viz_tab1:
                 st.markdown("#### Distribution Analysis")
-                
                 if 'Delivery_Time' in df.columns:
                     col1, col2 = st.columns(2)
-                    
                     with col1:
-                        fig1 = px.histogram(
-                            df, x='Delivery_Time', nbins=30,
-                            title="Delivery Time Distribution",
-                            color_discrete_sequence=['#667eea'],
-                            marginal="box"
-                        )
-                        fig1.update_traces(marker_line_color='white', marker_line_width=1.5)
-                        fig1.update_layout(
-                            template="plotly_white",
-                            font=dict(family="Inter, sans-serif"),
-                            xaxis_title="Delivery Time (hours)",
-                            yaxis_title="Frequency",
-                            showlegend=False
-                        )
+                        fig1 = px.histogram(df, x='Delivery_Time', nbins=30, title="Delivery Time Distribution", marginal="box")
+                        fig1.update_traces(marker_color='#667eea', marker_line_color='white', marker_line_width=1.5)
+                        fig1.update_layout(template="plotly_white", xaxis_title="Delivery Time (hours)", yaxis_title="Frequency", showlegend=False)
                         st.plotly_chart(fig1, use_container_width=True)
-                    
                     with col2:
-                        fig_box = px.box(
-                            df, y='Delivery_Time',
-                            title="Delivery Time Spread & Outliers",
-                            color_discrete_sequence=['#764ba2']
-                        )
-                        fig_box.update_layout(
-                            template="plotly_white",
-                            font=dict(family="Inter, sans-serif"),
-                            yaxis_title="Delivery Time (hours)",
-                            showlegend=False
-                        )
+                        fig_box = px.box(df, y='Delivery_Time', title="Delivery Time Spread & Outliers")
+                        fig_box.update_traces(marker_color='#764ba2')
+                        fig_box.update_layout(template="plotly_white", yaxis_title="Delivery Time (hours)", showlegend=False)
                         st.plotly_chart(fig_box, use_container_width=True)
                 
                 if 'Distance' in df.columns:
                     col1, col2 = st.columns(2)
-                    
                     with col1:
-                        fig_dist = px.histogram(
-                            df, x='Distance', nbins=30,
-                            title="Distance Distribution",
-                            color_discrete_sequence=['#4facfe'],
-                            marginal="violin"
-                        )
-                        fig_dist.update_traces(marker_line_color='white', marker_line_width=1.5)
-                        fig_dist.update_layout(
-                            template="plotly_white",
-                            font=dict(family="Inter, sans-serif"),
-                            xaxis_title="Distance (km)",
-                            yaxis_title="Frequency",
-                            showlegend=False
-                        )
+                        fig_dist = px.histogram(df, x='Distance', nbins=30, title="Distance Distribution", marginal="violin")
+                        fig_dist.update_traces(marker_color='#4facfe', marker_line_color='white', marker_line_width=1.5)
+                        fig_dist.update_layout(template="plotly_white", xaxis_title="Distance (km)", yaxis_title="Frequency", showlegend=False)
                         st.plotly_chart(fig_dist, use_container_width=True)
-                    
                     with col2:
                         if 'Agent_Rating' in df.columns:
-                            fig_rating = px.histogram(
-                                df, x='Agent_Rating',
-                                title="Agent Rating Distribution",
-                                color_discrete_sequence=['#f093fb'],
-                                nbins=20
-                            )
-                            fig_rating.update_traces(marker_line_color='white', marker_line_width=1.5)
-                            fig_rating.update_layout(
-                                template="plotly_white",
-                                font=dict(family="Inter, sans-serif"),
-                                xaxis_title="Agent Rating",
-                                yaxis_title="Frequency",
-                                showlegend=False
-                            )
+                            fig_rating = px.histogram(df, x='Agent_Rating', title="Agent Rating Distribution", nbins=20)
+                            fig_rating.update_traces(marker_color='#f093fb', marker_line_color='white', marker_line_width=1.5)
+                            fig_rating.update_layout(template="plotly_white", xaxis_title="Agent Rating", yaxis_title="Frequency", showlegend=False)
                             st.plotly_chart(fig_rating, use_container_width=True)
             
             # Tab 2: Relationships
             with viz_tab2:
                 st.markdown("#### Relationship Analysis")
-                
                 if 'Distance' in df.columns and 'Delivery_Time' in df.columns:
                     col1, col2 = st.columns(2)
-                    
                     with col1:
-                        color_col = 'Traffic' if 'Traffic' in df.columns else None
-                        fig3 = px.scatter(
-                            df, x='Distance', y='Delivery_Time',
-                            color=color_col,
-                            hover_data=df.columns.tolist(),
-                            title="Distance vs Delivery Time",
-                            trendline="ols",
-                            color_discrete_sequence=px.colors.qualitative.Set3
-                        )
+                        fig3 = px.scatter(df, x='Distance', y='Delivery_Time',
+                                          color='Traffic' if 'Traffic' in df.columns else None,
+                                          hover_data=df.columns.tolist(), title="Distance vs Delivery Time", trendline="ols")
                         fig3.update_traces(marker=dict(size=8, line=dict(width=1, color='white')))
-                        fig3.update_layout(
-                            template="plotly_white",
-                            font=dict(family="Inter, sans-serif"),
-                            xaxis_title="Distance (km)",
-                            yaxis_title="Delivery Time (hours)"
-                        )
+                        fig3.update_layout(template="plotly_white", xaxis_title="Distance (km)", yaxis_title="Delivery Time (hours)")
                         st.plotly_chart(fig3, use_container_width=True)
-                    
                     with col2:
                         if 'Agent_Rating' in df.columns:
-                            fig_rating_time = px.scatter(
-                                df, x='Agent_Rating', y='Delivery_Time',
-                                color='Vehicle' if 'Vehicle' in df.columns else None,
-                                title="Agent Rating vs Delivery Time",
-                                color_discrete_sequence=px.colors.qualitative.Pastel
-                            )
+                            fig_rating_time = px.scatter(df, x='Agent_Rating', y='Delivery_Time',
+                                                        color='Vehicle' if 'Vehicle' in df.columns else None,
+                                                        title="Agent Rating vs Delivery Time")
                             fig_rating_time.update_traces(marker=dict(size=8, line=dict(width=1, color='white')))
-                            fig_rating_time.update_layout(
-                                template="plotly_white",
-                                font=dict(family="Inter, sans-serif"),
-                                xaxis_title="Agent Rating",
-                                yaxis_title="Delivery Time (hours)"
-                            )
+                            fig_rating_time.update_layout(template="plotly_white", xaxis_title="Agent Rating", yaxis_title="Delivery Time (hours)")
                             st.plotly_chart(fig_rating_time, use_container_width=True)
                 
                 if 'Category' in df.columns:
                     col1, col2 = st.columns(2)
-                    
                     with col1:
                         cat_counts = df['Category'].value_counts().reset_index()
                         cat_counts.columns = ['Category', 'Count']
-                        fig2 = px.bar(
-                            cat_counts, x='Category', y='Count',
-                            title="Orders by Product Category",
-                            color='Count',
-                            color_continuous_scale='Viridis'
-                        )
-                        fig2.update_layout(
-                            template="plotly_white",
-                            xaxis_tickangle=-45,
-                            font=dict(family="Inter, sans-serif"),
-                            showlegend=False
-                        )
+                        fig2 = px.bar(cat_counts, x='Category', y='Count', title="Orders by Product Category")
+                        fig2.update_traces(marker_color='#667eea')
+                        fig2.update_layout(template="plotly_white", xaxis_tickangle=-45, showlegend=False)
                         st.plotly_chart(fig2, use_container_width=True)
-                    
                     with col2:
-                        fig_pie = px.pie(
-                            cat_counts, values='Count', names='Category',
-                            title="Category Distribution",
-                            color_discrete_sequence=px.colors.qualitative.Set3
-                        )
+                        fig_pie = px.pie(cat_counts, values='Count', names='Category', title="Category Distribution")
                         fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-                        fig_pie.update_layout(
-                            template="plotly_white",
-                            font=dict(family="Inter, sans-serif")
-                        )
+                        fig_pie.update_layout(template="plotly_white")
                         st.plotly_chart(fig_pie, use_container_width=True)
                 
                 if 'Weather' in df.columns and 'Traffic' in df.columns:
-                    fig_heatmap = px.density_heatmap(
-                        df, x='Weather', y='Traffic',
-                        title="Weather vs Traffic Conditions Heatmap",
-                        color_continuous_scale='Purples',
-                        marginal_x="box",
-                        marginal_y="box"
-                    )
-                    fig_heatmap.update_layout(
-                        template="plotly_white",
-                        font=dict(family="Inter, sans-serif")
-                    )
+                    fig_heatmap = px.density_heatmap(df, x='Weather', y='Traffic', title="Weather vs Traffic Conditions Heatmap", marginal_x="box", marginal_y="box")
+                    fig_heatmap.update_layout(template="plotly_white")
                     st.plotly_chart(fig_heatmap, use_container_width=True)
             
             # Tab 3: Time Analysis
             with viz_tab3:
                 st.markdown("#### Time-Based Analysis")
-                
-                if 'Order_DateTime' in df.columns:
-                    try:
-                        df['Order_DateTime'] = pd.to_datetime(df['Order_DateTime'])
-                        ts = df.set_index('Order_DateTime').resample('D').size().reset_index(name='Orders')
-                        
-                        fig4 = px.line(
-                            ts, x='Order_DateTime', y='Orders',
-                            title="Daily Orders Over Time",
-                            markers=True
-                        )
-                        fig4.update_traces(
-                            line_color='#667eea',
-                            marker=dict(size=6, color='#764ba2', line=dict(width=2, color='white'))
-                        )
-                        fig4.update_layout(
-                            template="plotly_white",
-                            font=dict(family="Inter, sans-serif"),
-                            xaxis_title="Date",
-                            yaxis_title="Number of Orders",
-                            hovermode='x unified'
-                        )
-                        st.plotly_chart(fig4, use_container_width=True)
-                    except Exception:
-                        st.info("Could not parse 'Order_DateTime' column.")
-                
                 col1, col2 = st.columns(2)
-                
                 with col1:
                     if 'Hour' in df.columns:
                         hour_counts = df['Hour'].value_counts().sort_index().reset_index()
                         hour_counts.columns = ['Hour', 'Count']
-                        fig5 = px.bar(
-                            hour_counts, x='Hour', y='Count',
-                            title="Orders by Hour of Day",
-                            color='Count',
-                            color_continuous_scale=['#667eea', '#764ba2', '#f093fb']
-                        )
-                        fig5.update_layout(
-                            template="plotly_white",
-                            font=dict(family="Inter, sans-serif"),
-                            xaxis_title="Hour (24-hour format)",
-                            yaxis_title="Number of Orders",
-                            showlegend=False
-                        )
+                        fig5 = px.bar(hour_counts, x='Hour', y='Count', title="Orders by Hour of Day")
+                        fig5.update_traces(marker_color='#667eea')
+                        fig5.update_layout(template="plotly_white", xaxis_title="Hour (24-hour format)", yaxis_title="Number of Orders", showlegend=False)
                         st.plotly_chart(fig5, use_container_width=True)
-                
                 with col2:
                     if 'DayOfWeek' in df.columns:
                         day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
                         day_counts = df['DayOfWeek'].value_counts().reindex(day_order).reset_index()
                         day_counts.columns = ['Day', 'Count']
-                        
-                        fig_day = px.bar(
-                            day_counts, x='Day', y='Count',
-                            title="Orders by Day of Week",
-                            color='Count',
-                            color_continuous_scale='Sunset'
-                        )
-                        fig_day.update_layout(
-                            template="plotly_white",
-                            font=dict(family="Inter, sans-serif"),
-                            xaxis_title="Day of Week",
-                            yaxis_title="Number of Orders",
-                            showlegend=False
-                        )
+                        fig_day = px.bar(day_counts, x='Day', y='Count', title="Orders by Day of Week")
+                        fig_day.update_traces(marker_color='#764ba2')
+                        fig_day.update_layout(template="plotly_white", xaxis_title="Day of Week", yaxis_title="Number of Orders", showlegend=False)
                         st.plotly_chart(fig_day, use_container_width=True)
-                
                 if 'Month' in df.columns:
                     month_counts = df['Month'].value_counts().sort_index().reset_index()
                     month_counts.columns = ['Month', 'Count']
-                    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                    month_counts['Month_Name'] = month_counts['Month'].apply(
-                        lambda x: month_names[int(x)-1] if 1 <= x <= 12 else str(x)
-                    )
-                    
-                    fig_month = px.line(
-                        month_counts, x='Month_Name', y='Count',
-                        title="Orders by Month",
-                        markers=True
-                    )
-                    fig_month.update_traces(
-                        line_color='#4facfe',
-                        marker=dict(size=10, color='#667eea', line=dict(width=2, color='white'))
-                    )
-                    fig_month.update_layout(
-                        template="plotly_white",
-                        font=dict(family="Inter, sans-serif"),
-                        xaxis_title="Month",
-                        yaxis_title="Number of Orders"
-                    )
+                    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                    month_counts['Month_Name'] = month_counts['Month'].apply(lambda x: month_names[int(x)-1] if 1 <= x <= 12 else str(x))
+                    fig_month = px.line(month_counts, x='Month_Name', y='Count', title="Orders by Month", markers=True)
+                    fig_month.update_traces(line_color='#4facfe', marker=dict(size=10, color='#667eea', line=dict(width=2, color='white')))
+                    fig_month.update_layout(template="plotly_white", xaxis_title="Month", yaxis_title="Number of Orders")
                     st.plotly_chart(fig_month, use_container_width=True)
             
             # Tab 4: Geographic Analysis
             with viz_tab4:
                 st.markdown("#### Geographic Analysis")
-                
                 if all(col in df.columns for col in ['Store_Latitude', 'Store_Longitude']):
                     try:
                         col1, col2 = st.columns(2)
-                        
                         with col1:
-                            st.markdown("##### Store Locations Heatmap")
-                            map_df = df[['Store_Latitude', 'Store_Longitude']].dropna().rename(
-                                columns={'Store_Latitude': 'lat', 'Store_Longitude': 'lon'}
-                            )
+                            st.markdown("##### Store Locations Map")
+                            map_df = df[['Store_Latitude', 'Store_Longitude']].dropna().rename(columns={'Store_Latitude': 'lat', 'Store_Longitude': 'lon'})
                             if not map_df.empty:
                                 st.map(map_df, zoom=10)
-                        
                         with col2:
                             if 'Delivery_Time' in df.columns:
                                 st.markdown("##### Performance by Location")
-                                fig_geo = px.scatter_mapbox(
-                                    df, lat='Store_Latitude', lon='Store_Longitude',
-                                    color='Delivery_Time',
-                                    size='Delivery_Time',
-                                    hover_data=['Distance'] if 'Distance' in df.columns else None,
-                                    color_continuous_scale='Viridis',
-                                    zoom=10,
-                                    title="Delivery Time by Location"
-                                )
-                                fig_geo.update_layout(
-                                    mapbox_style="open-street-map",
-                                    font=dict(family="Inter, sans-serif"),
-                                    height=400
-                                )
+                                fig_geo = px.scatter_mapbox(df, lat='Store_Latitude', lon='Store_Longitude',
+                                                            color='Delivery_Time', size='Delivery_Time',
+                                                            hover_data=['Distance'] if 'Distance' in df.columns else None,
+                                                            zoom=10, title="Delivery Time by Location")
+                                fig_geo.update_layout(mapbox_style="open-street-map", height=400)
                                 st.plotly_chart(fig_geo, use_container_width=True)
                     except Exception:
                         st.info("Could not render geographic visualizations.")
                 
                 if 'Area' in df.columns:
                     col1, col2 = st.columns(2)
-                    
                     with col1:
                         area_counts = df['Area'].value_counts().reset_index()
                         area_counts.columns = ['Area', 'Count']
-                        fig_area = px.bar(
-                            area_counts, x='Area', y='Count',
-                            title="Orders by Area Type",
-                            color='Area',
-                            color_discrete_sequence=px.colors.qualitative.Bold
-                        )
-                        fig_area.update_layout(
-                            template="plotly_white",
-                            font=dict(family="Inter, sans-serif"),
-                            showlegend=False
-                        )
+                        fig_area = px.bar(area_counts, x='Area', y='Count', title="Orders by Area Type")
+                        fig_area.update_traces(marker_color='#667eea')
+                        fig_area.update_layout(template="plotly_white", showlegend=False)
                         st.plotly_chart(fig_area, use_container_width=True)
-                    
                     with col2:
                         if 'Delivery_Time' in df.columns:
-                            fig_area_time = px.box(
-                                df, x='Area', y='Delivery_Time',
-                                title="Delivery Time by Area Type",
-                                color='Area',
-                                color_discrete_sequence=px.colors.qualitative.Safe
-                            )
-                            fig_area_time.update_layout(
-                                template="plotly_white",
-                                font=dict(family="Inter, sans-serif"),
-                                yaxis_title="Delivery Time (hours)"
-                            )
+                            fig_area_time = px.box(df, x='Area', y='Delivery_Time', title="Delivery Time by Area Type")
+                            fig_area_time.update_traces(marker_color='#764ba2')
+                            fig_area_time.update_layout(template="plotly_white", yaxis_title="Delivery Time (hours)")
                             st.plotly_chart(fig_area_time, use_container_width=True)
             
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Correlation Matrix
-            st.markdown("### 🔗 Feature Correlation Matrix")
-            numeric_cols = df.select_dtypes(include=['number']).columns
-            if len(numeric_cols) > 1:
-                corr = df[numeric_cols].corr()
+            # Tab 5: Data Quality & Correlation
+            with viz_tab5:
+                st.markdown("### Feature Correlation Matrix")
+                numeric_cols = df.select_dtypes(include=['number']).columns
+                if len(numeric_cols) > 1:
+                    corr = df[numeric_cols].corr()
+                    fig6 = go.Figure(data=go.Heatmap(
+                        z=corr.values,
+                        x=corr.columns,
+                        y=corr.columns,
+                        colorscale='RdBu_r',
+                        zmid=0,
+                        text=np.round(corr.values, 2),
+                        texttemplate='%{text}',
+                        textfont={"size": 10},
+                        showscale=True,
+                        colorbar=dict(title="Correlation")
+                    ))
+                    fig6.update_layout(title="Correlation Heatmap (Numeric Features)", template="plotly_white", width=800, height=600, xaxis_showgrid=False, yaxis_showgrid=False)
+                    st.plotly_chart(fig6, use_container_width=True)
+
+                st.markdown("### Data Quality Report")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.markdown("<div class='metric-card'><h4 style='color: #667eea;'>Missing Values</h4></div>", unsafe_allow_html=True)
+                    missing = df.isnull().sum()
+                    missing_df = pd.DataFrame({'Feature': missing.index, 'Missing Count': missing.values, 'Percentage': (missing.values / len(df) * 100).round(2)})
+                    missing_df = missing_df[missing_df['Missing Count'] > 0]
+                    if len(missing_df) > 0:
+                        st.dataframe(missing_df, use_container_width=True)
+                    else:
+                        st.success("No missing values detected")
                 
-                fig6 = go.Figure(data=go.Heatmap(
-                    z=corr.values,
-                    x=corr.columns,
-                    y=corr.columns,
-                    colorscale='RdBu_r',
-                    zmid=0,
-                    text=np.round(corr.values, 2),
-                    texttemplate='%{text}',
-                    textfont={"size": 10},
-                    showscale=True,
-                    colorbar=dict(title="Correlation")
-                ))
-                fig6.update_layout(
-                    title="Correlation Heatmap (Numeric Features)",
-                    template="plotly_white",
-                    font=dict(family="Inter, sans-serif"),
-                    width=800,
-                    height=600,
-                    xaxis_showgrid=False,
-                    yaxis_showgrid=False
-                )
-                st.plotly_chart(fig6, use_container_width=True)
+                with col2:
+                    st.markdown("<div class='metric-card'><h4 style='color: #667eea;'>Duplicate Records</h4></div>", unsafe_allow_html=True)
+                    duplicates = df.duplicated().sum()
+                    if duplicates > 0:
+                        st.warning(f"Found {duplicates} duplicate records ({(duplicates/len(df)*100):.2f}%)")
+                    else:
+                        st.success("No duplicate records detected")
+                
+                with col3:
+                    st.markdown("<div class='metric-card'><h4 style='color: #667eea;'>Data Types</h4></div>", unsafe_allow_html=True)
+                    dtype_counts = df.dtypes.value_counts()
+                    dtype_df = pd.DataFrame({'Type': dtype_counts.index.astype(str), 'Count': dtype_counts.values})
+                    st.dataframe(dtype_df, use_container_width=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # Data Quality Report
-            st.markdown("### 🔍 Data Quality Report")
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.markdown("""
-                    <div class='metric-card'>
-                        <h4 style='color: #667eea;'>Missing Values</h4>
-                    </div>
-                """, unsafe_allow_html=True)
-                missing = df.isnull().sum()
-                missing_df = pd.DataFrame({
-                    'Feature': missing.index,
-                    'Missing Count': missing.values,
-                    'Percentage': (missing.values / len(df) * 100).round(2)
-                })
-                missing_df = missing_df[missing_df['Missing Count'] > 0]
-                if len(missing_df) > 0:
-                    st.dataframe(missing_df, use_container_width=True)
-                else:
-                    st.success("No missing values detected")
-            
-            with col2:
-                st.markdown("""
-                    <div class='metric-card'>
-                        <h4 style='color: #667eea;'>Duplicate Records</h4>
-                    </div>
-                """, unsafe_allow_html=True)
-                duplicates = df.duplicated().sum()
-                if duplicates > 0:
-                    st.warning(f"Found {duplicates} duplicate records ({(duplicates/len(df)*100):.2f}%)")
-                else:
-                    st.success("No duplicate records detected")
-            
-            with col3:
-                st.markdown("""
-                    <div class='metric-card'>
-                        <h4 style='color: #667eea;'>Data Types</h4>
-                    </div>
-                """, unsafe_allow_html=True)
-                dtype_counts = df.dtypes.value_counts()
-                dtype_df = pd.DataFrame({
-                    'Type': dtype_counts.index.astype(str),
-                    'Count': dtype_counts.values
-                })
-                st.dataframe(dtype_df, use_container_width=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Summary Statistics
-            st.markdown("### 📋 Summary Statistics")
-            if len(df.select_dtypes(include=['number']).columns) > 0:
-                summary_stats = df.describe().round(2)
-                st.dataframe(summary_stats, use_container_width=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Download
+            # Download Processed Data
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
                 csv = df.to_csv(index=False)
                 st.download_button(
-                    label="📥 Download Processed Data",
+                    label="Download Processed Data",
                     data=csv,
                     file_name=f"processed_delivery_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
@@ -1144,82 +969,113 @@ def user_data_analysis_page():
 # About Page
 def about_page():
     st.markdown("""
-        <h1 style='text-align: center; color: #1a202c; font-weight: 700; margin-bottom: 10px;'>
-            About This App
-        </h1>
-        <p style='text-align: center; color: #718096; font-size: 16px; margin-bottom: 30px;'>
-            Powered by LightGBM with Optuna optimization for accurate delivery predictions
-        </p>
-    """, unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("""
-            <div class='metric-card'>
-                <h3 style='color: #667eea; margin-bottom: 16px;'>Technology Stack</h3>
-                <ul style='color: #4a5568; font-size: 15px; line-height: 2;'>
-                    <li><strong>Model:</strong> LightGBM with Optuna hyperparameter tuning</li>
-                    <li><strong>Framework:</strong> Streamlit for interactive UI</li>
-                    <li><strong>Visualizations:</strong> Plotly for dynamic charts</li>
-                    <li><strong>Data Processing:</strong> Pandas & NumPy</li>
-                </ul>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-            <div class='metric-card'>
-                <h3 style='color: #667eea; margin-bottom: 16px;'>Key Features</h3>
-                <ul style='color: #4a5568; font-size: 15px; line-height: 2;'>
-                    <li>Real-time delivery time predictions</li>
-                    <li>Batch processing for multiple orders</li>
-                    <li>Interactive data analysis dashboard</li>
-                    <li>Geographic distance calculations</li>
-                </ul>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    st.markdown("""
-        <div class='metric-card' style='margin-top: 20px;'>
-            <h3 style='color: #667eea; margin-bottom: 16px;'>Model Features</h3>
-            <p style='color: #4a5568; font-size: 15px; line-height: 1.8;'>
-                The prediction model considers multiple factors including geographic distance (calculated using 
-                Haversine formula), agent demographics and ratings, temporal patterns (hour, day, month), 
-                weather conditions, traffic levels, vehicle types, area characteristics, and product categories 
-                to deliver accurate delivery time estimates.
-            </p>
-        </div>
+    <style>
+    .metric-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        padding: 20px 25px;
+        border-radius: 16px;
+        margin: 20px 0; /* Matches home page */
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+    .purple-card { border: 2px solid #764ba2; }
+    .navy-card { border: 2px solid #1a237e; }
+    .metric-card h3, h2 { color: #4facfe !important; }
+    .metric-card p, .metric-card li { color: #495057; font-size: 15px; line-height: 1.8; }
+    </style>
     """, unsafe_allow_html=True)
 
-# Main
+    # Hero Section (same padding & margin as home_page)
+    st.markdown("""
+    <div style="
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        padding: 60px 40px; 
+        border-radius: 20px; 
+        text-align: center; 
+        color: #1a1f36; 
+        box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+        border: 2px solid #1a237e;
+        margin-bottom: 40px;
+    ">
+        <h1 style='font-size: 48px; font-weight: 700; margin-bottom: 12px; color: #1a1f36;'>
+            About This App
+        </h1>
+        <p style='font-size: 20px; font-weight: 400; opacity: 0.9; max-width: 800px; margin: 0 auto;'>
+            Delivering reliable and accurate delivery time predictions powered by LightGBM with Optuna optimization. Provides advanced analytics and actionable insights to improve logistics efficiency.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Feature Cards (Two-column layout)
+    col1, col2 = st.columns(2, gap="large")  # Ensures same spacing as home_page
+
+    with col1:
+        st.markdown("""
+        <div class='metric-card purple-card' style='text-align: left;'>
+            <h3>Technology Stack</h3>
+            <ul>
+                <li><strong>Model:</strong> LightGBM with Optuna tuning</li>
+                <li><strong>Framework:</strong> Streamlit UI</li>
+                <li><strong>Visualizations:</strong> Plotly charts</li>
+                <li><strong>Data Processing:</strong> Pandas & NumPy</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("""
+        <div class='metric-card navy-card' style='text-align: left;'>
+            <h3>Key Features</h3>
+            <ul>
+                <li>Real time delivery predictions</li>
+                <li>Batch processing for multiple orders</li>
+                <li>Interactive dashboards & analytics</li>
+                <li>Geographic distance & area insights</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+# MAIN APP
 def main():
     model, metrics = load_model_and_metrics()
     
-    st.sidebar.markdown("<h2 style='color: white; margin-bottom: 6px;'>Navigation</h2>", unsafe_allow_html=True)
-    page = st.sidebar.radio("", ["Home", "Prediction", "Data Analysis", "About"])
+    # Sidebar
+    st.sidebar.markdown("<h2 style='color: white; margin-bottom: 2rem;'>Navigation</h2>", unsafe_allow_html=True)
+    page = st.sidebar.radio("", ["Home", "Prediction", "Data Analysis", "About"], label_visibility="collapsed")
     
-    default_metrics = {'r2':0,'rmse':0,'mae':0}
+    st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
     
+    st.sidebar.markdown("""
+        <div style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 12px; color: white;">
+            <h4 style="color: white; margin-bottom: 1rem;">Quick Info</h4>
+            <p style="font-size: 0.9rem; line-height: 1.6; opacity: 0.9;">
+                This AI powered system uses advanced machine learning to predict delivery times
+                with high accuracy based on multiple real world factors.
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.sidebar.markdown("<br>", unsafe_allow_html=True)
+    
+    st.sidebar.markdown("""
+        <div style="text-align: center; color: rgba(255,255,255,0.7); font-size: 0.85rem; margin-top: 3rem;">
+            <p>© 2025 Amazon Delivery Predictor</p>
+            <p>Built with Streamlit</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Page routing
     if page == "Home":
-        home_page(metrics if metrics else default_metrics)
+        home_page(metrics)
     elif page == "Prediction":
-        prediction_page(model, metrics if metrics else default_metrics)
+        prediction_page(model, metrics)
     elif page == "Data Analysis":
         user_data_analysis_page()
     elif page == "About":
         about_page()
 
 if __name__ == "__main__":
-
     main()
-
-
-
-
-
-
-
-
-
-
