@@ -47,11 +47,6 @@ github_url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-deliv
 # Change loader if you saved with joblib
 model = load_model_from_github(github_url, loader="pickle")
 
-if model:
-    st.success("Model loaded successfully from GitHub!")
-else:
-    st.error("Model could not be loaded from GitHub.")
-
 # Custom CSS for enhances styling
 st.markdown("""
     <style>
@@ -1083,3 +1078,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
