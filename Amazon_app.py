@@ -40,7 +40,7 @@ def load_model_from_github(url, loader="pickle"):
         return None
 
 # Use the RAW link, not the GitHub blob link
-github_url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/main/Model.pkl"
+github_url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/blob/main/Model.pkl"
 
 # Change loader to "joblib" if you saved with joblib
 model = load_model_from_github(github_url, loader="pickle")
@@ -1210,6 +1210,7 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
 
