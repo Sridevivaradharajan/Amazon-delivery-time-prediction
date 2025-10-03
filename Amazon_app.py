@@ -9,6 +9,10 @@ from datetime import datetime, time
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import warnings
 warnings.filterwarnings('ignore')
+import requests
+import pickle
+import lightgbm as lgb
+from io import BytesIO
 
 # Page configuration
 st.set_page_config(
