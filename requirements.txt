@@ -7,4 +7,5 @@ scikit-learn==1.3.0
 lightgbm==4.2.0
 optuna==3.3.0
 requests
+statsmodels==0.14.2
 
