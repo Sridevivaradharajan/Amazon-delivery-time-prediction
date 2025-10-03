@@ -21,6 +21,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
 @st.cache_resource
 def load_model_from_github(url, loader="pickle"):
     response = requests.get(url)
@@ -39,10 +40,10 @@ def load_model_from_github(url, loader="pickle"):
         st.error("Failed to fetch model from GitHub.")
         return None
 
-# Use the RAW link, not the GitHub blob link
-github_url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/blob/main/Model.pkl"
+# Correct RAW link
+github_url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/main/Model.pkl"
 
-# Change loader to "joblib" if you saved with joblib
+# Change loader if you saved with joblib
 model = load_model_from_github(github_url, loader="pickle")
 
 if model:
@@ -183,17 +184,19 @@ st.markdown("""
 @st.cache_resource
 def load_model_and_metrics():
     try:
-        with open('Model.pkl', 'rb') as f:
-            model = pickle.load(f)
-        metrics = {
-            'r2': 0.8221,
-            'rmse': 21.8009,
-            'mae': 16.9764
-        }
-        return model, metrics
-    except FileNotFoundError:
-        st.error("Model file not found. Please ensure 'Model.pkl' is in the same directory.")
-        return None, None
+        url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/main/Model.pkl"
+        response = requests.get(url)
+        if response.status_code == 200:
+            model = pickle.load(BytesIO(response.content))
+            metrics = {
+                'r2': 0.8221,
+                'rmse': 21.8009,
+                'mae': 16.9764
+            }
+            return model, metrics
+        else:
+            st.error("Could not fetch model from GitHub.")
+            return None, None
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
         return None, None
@@ -1210,6 +1213,7 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
 
