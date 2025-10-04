@@ -24,21 +24,27 @@ st.set_page_config(
 
 @st.cache_resource
 def load_model_from_github(url, loader="pickle"):
-    response = requests.get(url)
-    if response.status_code == 200:
-        try:
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
             if loader == "pickle":
                 model = pickle.load(BytesIO(response.content))
-            else:
+            elif loader == "joblib":
                 import joblib
                 model = joblib.load(BytesIO(response.content))
+            else:
+                st.error("Unsupported loader type. Use 'pickle' or 'joblib'.")
+                return None
             return model
-        except Exception as e:
-            st.error(f"Error loading model: {e}")
+        else:
+            st.error(f"Failed to fetch model. Status code: {response.status_code}")
             return None
-    else:
-        st.error("Failed to fetch model from GitHub.")
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
         return None
+
+url = "https://github.com/Sridevivaradharajan/Amazon-delivery-time-prediction/raw/main/Model.pkl"
+model = load_model_from_github(url, loader="pickle")
 
 # Correct RAW link
 github_url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/main/Model.pkl"
@@ -1125,5 +1131,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
