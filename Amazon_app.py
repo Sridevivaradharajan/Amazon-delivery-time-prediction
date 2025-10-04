@@ -9,10 +9,6 @@ from datetime import datetime, time
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import warnings
 warnings.filterwarnings('ignore')
-import requests
-import pickle
-import lightgbm as lgb
-from io import BytesIO
 
 # Page configuration
 st.set_page_config(
@@ -21,7 +17,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
 
 @st.cache_resource
 def load_model_from_github(url, loader="pickle"):
@@ -205,7 +200,7 @@ def load_model_and_metrics():
         if response.status_code == 200:
             model = pickle.load(BytesIO(response.content))
             metrics = {
-                'r2': 0.8221,
+                'r2': 0.8225,
                 'rmse': 21.8009,
                 'mae': 16.9764
             }
@@ -216,56 +211,6 @@ def load_model_and_metrics():
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
         return None, None
-
-# Haversine distance calculation
-def haversine(lat1, lon1, lat2, lon2):
-    R = 6371
-    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
-    c = 2 * np.arcsin(np.sqrt(a))
-    return R * c
-
-# Prepare input data
-def prepare_input(data_dict):
-    distance = haversine(
-        data_dict['Store_Latitude'], data_dict['Store_Longitude'],
-        data_dict['Drop_Latitude'], data_dict['Drop_Longitude']
-    )
-    
-    if distance < 5:
-        distance_bin = '0-5'
-    elif distance < 10:
-        distance_bin = '5-10'
-    elif distance < 15:
-        distance_bin = '10-15'
-    elif distance < 20:
-        distance_bin = '15-20'
-    else:
-        distance_bin = '20+'
-    
-    features = {
-        'Agent_Age': data_dict['Agent_Age'],
-        'Agent_Rating': data_dict['Agent_Rating'],
-        'Store_Latitude': data_dict['Store_Latitude'],
-        'Store_Longitude': data_dict['Store_Longitude'],
-        'Drop_Latitude': data_dict['Drop_Latitude'],
-        'Drop_Longitude': data_dict['Drop_Longitude'],
-        'Distance': distance,
-        'Hour': data_dict['Hour'],
-        'Month': data_dict['Month'],
-        'Prep_Time_Min': data_dict['Prep_Time_Min'],
-        'Weather': data_dict['Weather'],
-        'Traffic': data_dict['Traffic'],
-        'Vehicle': data_dict['Vehicle'],
-        'Area': data_dict['Area'],
-        'Category': data_dict['Category'],
-        'Distance_Bin': distance_bin,
-        'DayOfWeek': data_dict['DayOfWeek']
-    }
-    
-    return pd.DataFrame([features])
 
 # Home Page
 def home_page(metrics):
@@ -407,6 +352,65 @@ def home_page(metrics):
             </div>
         """, unsafe_allow_html=True)
 
+# Haversine function to calculate distance
+def haversine(lat1, lon1, lat2, lon2):
+    """Calculate Haversine distance (in km) between two lat/lon points"""
+    R = 6371  # Earth radius in km
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
+    c = 2 * np.arcsin(np.sqrt(a))
+    return R * c
+
+# Prepare input function
+def prepare_input(input_data):
+    """Prepare single prediction input with all required features in exact order"""
+    # Calculate distance
+    distance = haversine(
+        input_data['Store_Latitude'], 
+        input_data['Store_Longitude'],
+        input_data['Drop_Latitude'], 
+        input_data['Drop_Longitude']
+    )
+    
+    # Create distance bin
+    if distance < 5:
+        distance_bin = '0_5km'
+    elif distance < 10:
+        distance_bin = '5_10km'
+    elif distance < 15:
+        distance_bin = '10_15km'
+    elif distance < 20:
+        distance_bin = '15_20km'
+    else:
+        distance_bin = '20+km'
+    
+    # Create DataFrame with EXACT feature order matching training
+    df = pd.DataFrame([{
+        # Numeric features (in order)
+        'Agent_Age': input_data['Agent_Age'],
+        'Agent_Rating': input_data['Agent_Rating'],
+        'Store_Latitude': input_data['Store_Latitude'],
+        'Store_Longitude': input_data['Store_Longitude'],
+        'Drop_Latitude': input_data['Drop_Latitude'],
+        'Drop_Longitude': input_data['Drop_Longitude'],
+        'Distance': distance,
+        'Hour': input_data['Hour'],
+        'Month': input_data['Month'],
+        'Prep_Time_Min': input_data['Prep_Time_Min'],
+        # Categorical features (in order)
+        'Weather': input_data['Weather'],
+        'Traffic': input_data['Traffic'],
+        'Vehicle': input_data['Vehicle'],
+        'Area': input_data['Area'],
+        'Category': input_data['Category'],
+        'Distance_Bin': distance_bin,
+        'DayOfWeek': input_data['DayOfWeek']
+    }])
+    
+    return df
+
 # Prediction Page
 def prediction_page(model, metrics):
     st.markdown("""
@@ -419,6 +423,7 @@ def prediction_page(model, metrics):
     """, unsafe_allow_html=True)
     
     if model is None:
+        st.warning("No model loaded. Please train a model first.")
         return
     
     # Display model metrics
@@ -452,19 +457,21 @@ def prediction_page(model, metrics):
             drop_lon = st.number_input("Drop Longitude", value=77.1025, format="%.4f")
             
             st.markdown("#### Order Details")
-            order_date = st.date_input("Order Date", value=datetime.now())
-            order_time = st.time_input("Order Time", value=time(12, 0))
+            hour = st.slider("Order Hour (24h format)", min_value=0, max_value=23, value=12)
+            month = st.selectbox("Order Month", list(range(1, 13)), index=2)
             prep_time = st.number_input("Preparation Time (minutes)", min_value=0, max_value=180, value=30)
         
         with col2:
             st.markdown("#### Delivery Conditions")
-            weather = st.selectbox("Weather", ['Sunny', 'Cloudy', 'Rainy', 'Stormy', 'Fog', 'Windy'])
-            traffic = st.selectbox("Traffic", ['Low', 'Medium', 'High', 'Jam'])
-            vehicle = st.selectbox("Vehicle Type", ['Bike', 'Scooter', 'Van', 'Truck'])
-            area = st.selectbox("Area Type", ['Urban', 'Metropolitan', 'Semi-Urban'])
+            weather = st.selectbox("Weather", ['Sunny', 'Cloudy', 'Rainy', 'Stormy', 'Fog', 'Sandstorms'])
+            traffic = st.selectbox("Traffic", ['Low', 'Medium', 'High', 'Jam', 'Very High'])
+            vehicle = st.selectbox("Vehicle Type", ['bike', 'scooter', 'electric_scooter', 'motorcycle'])
+            area = st.selectbox("Area Type", ['Urban', 'Metropolitian', 'Semi-Urban', 'Rural'])
             category = st.selectbox("Product Category", 
                                     ['Electronics', 'Clothing', 'Grocery', 'Books', 
-                                     'Home', 'Sports', 'Jewelry', 'Beauty'])
+                                     'Home', 'Sports', 'Jewelry', 'Beauty', 'Toys', 
+                                     'Food', 'Cosmetics', 'Fashion', 'Health', 
+                                     'Furniture', 'Accessories', 'Footwear'])
             
             st.markdown("#### Additional Information")
             day_of_week = st.selectbox("Day of Week", 
@@ -484,8 +491,8 @@ def prediction_page(model, metrics):
                     'Store_Longitude': store_lon,
                     'Drop_Latitude': drop_lat,
                     'Drop_Longitude': drop_lon,
-                    'Hour': order_time.hour,
-                    'Month': order_date.month,
+                    'Hour': hour,
+                    'Month': month,
                     'Prep_Time_Min': prep_time,
                     'Weather': weather,
                     'Traffic': traffic,
@@ -497,6 +504,7 @@ def prediction_page(model, metrics):
                 
                 df_input = prepare_input(input_data)
                 
+                # Convert categorical columns to category dtype
                 categorical_cols = ['Weather', 'Traffic', 'Vehicle', 'Area', 'Category', 'Distance_Bin', 'DayOfWeek']
                 for col in categorical_cols:
                     df_input[col] = df_input[col].astype('category')
@@ -522,7 +530,6 @@ def prediction_page(model, metrics):
                         </div>
                     """, unsafe_allow_html=True)
                 
-                # --- Days + Hours Display ---
                 days = int(prediction // 24)
                 hours = prediction % 24
                 st.markdown(f"""
@@ -541,8 +548,8 @@ def prediction_page(model, metrics):
                 with col2:
                     st.metric("Avg Speed", f"{distance/prediction:.2f} km/h", delta="Estimated")
                 with col3:
-                    delivery_datetime = datetime.combine(order_date, order_time)
-                    estimated_arrival = delivery_datetime + pd.Timedelta(hours=prediction)
+                    current_datetime = datetime.now()
+                    estimated_arrival = current_datetime + pd.Timedelta(hours=prediction)
                     st.metric("ETA", estimated_arrival.strftime("%H:%M"), delta=estimated_arrival.strftime("%d %b"))
                 
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -569,8 +576,9 @@ def prediction_page(model, metrics):
                     """, unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Error making prediction: {str(e)}")
+                st.exception(e)
     
-    # ----------- Bulk Prediction Tab -----------
+    # ----------- Bulk Prediction Tab - CORRECTED -----------
     with tab2:
         st.markdown("### Upload CSV File for Batch Predictions")
         st.info("Your CSV should contain: Agent_Age, Agent_Rating, Store_Latitude, Store_Longitude, Drop_Latitude, Drop_Longitude, Hour, Month, Prep_Time_Min, Weather, Traffic, Vehicle, Area, Category, DayOfWeek")
@@ -592,8 +600,8 @@ def prediction_page(model, metrics):
                     'Prep_Time_Min': [30, 25, 35],
                     'Weather': ['Sunny', 'Cloudy', 'Rainy'],
                     'Traffic': ['Medium', 'High', 'Low'],
-                    'Vehicle': ['Bike', 'Scooter', 'Van'],
-                    'Area': ['Urban', 'Metropolitan', 'Urban'],
+                    'Vehicle': ['bike', 'scooter', 'motorcycle'],
+                    'Area': ['Urban', 'Metropolitian', 'Urban'],
                     'Category': ['Electronics', 'Grocery', 'Clothing'],
                     'DayOfWeek': ['Monday', 'Tuesday', 'Wednesday']
                 })
@@ -616,22 +624,50 @@ def prediction_page(model, metrics):
                 
                 if st.button("Generate Predictions", use_container_width=True):
                     with st.spinner("Processing predictions..."):
+                        # Calculate distance for all rows
                         df['Distance'] = df.apply(lambda row: haversine(
                             row['Store_Latitude'], row['Store_Longitude'],
                             row['Drop_Latitude'], row['Drop_Longitude']
                         ), axis=1)
                         
-                        bins = [0, 5, 10, 15, 20, df['Distance'].max()+1]
-                        labels = ['0-5', '5-10', '10-15', '15-20', '20+']
-                        df['Distance_Bin'] = pd.cut(df['Distance'], bins=bins, labels=labels, right=False)
+                        # Create distance bins
+                        max_distance = df['Distance'].max()
+                        if max_distance <= 0:
+                            st.error("All calculated distances are zero or negative. Please check coordinates.")
+                            st.stop()
                         
+                        bins = [0, 5, 10, 15, 20, max_distance + 1]
+                        labels = ['0_5km', '5_10km', '10_15km', '15_20km', '20+km']
+                        df['Distance_Bin'] = pd.cut(df['Distance'], bins=bins, labels=labels, right=False)
+                        df['Distance_Bin'] = df['Distance_Bin'].astype(str)
+                        
+                        # CRITICAL FIX: Reorder columns to match training order
+                        feature_order = [
+                            'Agent_Age', 'Agent_Rating', 
+                            'Store_Latitude', 'Store_Longitude',
+                            'Drop_Latitude', 'Drop_Longitude',
+                            'Distance', 'Hour', 'Month', 'Prep_Time_Min',
+                            'Weather', 'Traffic', 'Vehicle', 'Area', 
+                            'Category', 'Distance_Bin', 'DayOfWeek'
+                        ]
+                        
+                        # Check for missing columns
+                        missing_cols = [col for col in feature_order if col not in df.columns]
+                        if missing_cols:
+                            st.error(f"Missing required columns: {missing_cols}")
+                            st.stop()
+                        
+                        # Create prediction DataFrame with exact feature order
+                        df_pred = df[feature_order].copy()
+                        
+                        # Convert categorical columns to category dtype
                         categorical_cols = ['Weather', 'Traffic', 'Vehicle', 'Area', 'Category', 'Distance_Bin', 'DayOfWeek']
                         for col in categorical_cols:
-                            df[col] = df[col].astype('category')
+                            df_pred[col] = df_pred[col].astype('category')
                         
-                        predictions = model.predict(df)
+                        # Make predictions
+                        predictions = model.predict(df_pred)
                         df['Predicted_Delivery_Time'] = predictions
-                        # Add Days + Hours
                         df['Predicted_Days'] = (predictions // 24).astype(int)
                         df['Predicted_Hours_Remaining'] = predictions % 24
                     
@@ -673,6 +709,7 @@ def prediction_page(model, metrics):
                     
             except Exception as e:
                 st.error(f"Error processing file: {str(e)}")
+                st.exception(e)
                 st.info("Please ensure your CSV file matches the required format.")
 
 # User Data Analysis Page 
@@ -1078,4 +1115,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
