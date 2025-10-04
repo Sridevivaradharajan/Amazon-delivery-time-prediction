@@ -199,10 +199,16 @@ st.markdown("""
 @st.cache_resource
 def load_model_and_metrics():
     try:
+        # Raw GitHub URL for the model file
         url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/main/Model.pkl"
+        
+        # Fetch the file
         response = requests.get(url)
         if response.status_code == 200:
+            # Load the model directly from the response content
             model = pickle.load(BytesIO(response.content))
+            
+            # Pre-stored metrics (update if needed)
             metrics = {
                 'r2': 0.8225,
                 'rmse': 21.8009,
@@ -210,7 +216,7 @@ def load_model_and_metrics():
             }
             return model, metrics
         else:
-            st.error("Could not fetch model from GitHub.")
+            st.error("Could not fetch model from GitHub. Status code: " + str(response.status_code))
             return None, None
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
@@ -1119,4 +1125,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
