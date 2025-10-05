@@ -9,10 +9,6 @@ from datetime import datetime, time
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import warnings
 warnings.filterwarnings('ignore')
-import requests
-import pickle
-import lightgbm as lgb
-from io import BytesIO
 
 # Page configuration
 st.set_page_config(
@@ -24,33 +20,32 @@ st.set_page_config(
 
 @st.cache_resource
 def load_model_from_github(url, loader="pickle"):
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
+    response = requests.get(url)
+    if response.status_code == 200:
+        try:
             if loader == "pickle":
                 model = pickle.load(BytesIO(response.content))
-            elif loader == "joblib":
+            else:
                 import joblib
                 model = joblib.load(BytesIO(response.content))
-            else:
-                st.error("Unsupported loader type. Use 'pickle' or 'joblib'.")
-                return None
             return model
-        else:
-            st.error(f"Failed to fetch model. Status code: {response.status_code}")
+        except Exception as e:
+            st.error(f"Error loading model: {e}")
             return None
-    except Exception as e:
-        st.error(f"Error loading model: {e}")
+    else:
+        st.error("Failed to fetch model from GitHub.")
         return None
-
-url = "https://github.com/Sridevivaradharajan/Amazon-delivery-time-prediction/raw/main/Model.pkl"
-model = load_model_from_github(url, loader="pickle")
 
 # Correct RAW link
 github_url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/main/Model.pkl"
 
 # Change loader if you saved with joblib
 model = load_model_from_github(github_url, loader="pickle")
+
+if model:
+    st.success("Model loaded successfully from GitHub!")
+else:
+    st.error("Model could not be loaded from GitHub.")
 
 # Custom CSS for enhances styling
 st.markdown("""
@@ -205,25 +200,17 @@ st.markdown("""
 @st.cache_resource
 def load_model_and_metrics():
     try:
-        # Raw GitHub URL for the model file
-        url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/main/Model.pkl"
-        
-        # Fetch the file
-        response = requests.get(url)
-        if response.status_code == 200:
-            # Load the model directly from the response content
-            model = pickle.load(BytesIO(response.content))
-            
-            # Pre-stored metrics (update if needed)
-            metrics = {
-                'r2': 0.8225,
-                'rmse': 21.8009,
-                'mae': 16.9764
-            }
-            return model, metrics
-        else:
-            st.error("Could not fetch model from GitHub. Status code: " + str(response.status_code))
-            return None, None
+        with open('lightgbm_optuna_tuned.pkl', 'rb') as f:
+            model = pickle.load(f)
+        metrics = {
+            'r2': 0.8225,
+            'rmse': 21.7800,
+            'mae': 16.9278
+        }
+        return model, metrics
+    except FileNotFoundError:
+        st.error("Model file not found. Please ensure 'lightgbm_optuna_tuned.pkl' is in the same directory.")
+        return None, None
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
         return None, None
@@ -312,7 +299,7 @@ def home_page(metrics):
     with col3:
         st.markdown("""
             <div class='metric-card purple-card' style='text-align: center;'>
-                <h3>Data Analytics</h3>
+                <h3>Data-Driven Analytics</h3>
                 <p style='color: #495057; font-size: 15px; line-height: 1.6;'>
                     Comprehensive dashboards for actionable delivery insights
                 </p>
@@ -1101,11 +1088,11 @@ def main():
     st.sidebar.markdown("<br><br>", unsafe_allow_html=True)
     
     st.sidebar.markdown("""
-        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 12px; color: white; max-width: 350px;">
-            <h4 style="color: white; margin-bottom: 0.8rem;">Quick Info</h4>
-            <p style="font-size: 0.9rem; line-height: 1.6; opacity: 0.9">
-            This AI powered system uses advanced machine learning to predict delivery times
-            with high accuracy based on multiple real world factors.
+        <div style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 12px; color: white;">
+            <h4 style="color: white; margin-bottom: 1rem;">Quick Info</h4>
+            <p style="font-size: 0.9rem; line-height: 1.6; opacity: 0.9;">
+                This AI powered system uses advanced machine learning to predict delivery times
+                with high accuracy based on multiple real world factors.
             </p>
         </div>
     """, unsafe_allow_html=True)
@@ -1131,11 +1118,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
