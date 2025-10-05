@@ -1103,7 +1103,7 @@ def main():
     st.sidebar.markdown("""
         <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 12px; color: white; max-width: 350px;">
             <h4 style="color: white; margin-bottom: 0.8rem;">Quick Info</h4>
-            <p style="font-size: 0.9rem; line-height: 1.6; opacity: 0.9; text-align: justify;">
+            <p style="font-size: 0.9rem; line-height: 1.6; opacity: 0.9">
             This AI powered system uses advanced machine learning to predict delivery times
             with high accuracy based on multiple real world factors.
             </p>
@@ -1131,6 +1131,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
