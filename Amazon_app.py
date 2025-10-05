@@ -9,6 +9,10 @@ from datetime import datetime, time
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 import warnings
 warnings.filterwarnings('ignore')
+import requests
+import pickle
+import lightgbm as lgb
+from io import BytesIO
 
 # Page configuration
 st.set_page_config(
@@ -17,35 +21,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-@st.cache_resource
-def load_model_from_github(url, loader="pickle"):
-    response = requests.get(url)
-    if response.status_code == 200:
-        try:
-            if loader == "pickle":
-                model = pickle.load(BytesIO(response.content))
-            else:
-                import joblib
-                model = joblib.load(BytesIO(response.content))
-            return model
-        except Exception as e:
-            st.error(f"Error loading model: {e}")
-            return None
-    else:
-        st.error("Failed to fetch model from GitHub.")
-        return None
-
-# Correct RAW link
-github_url = "https://raw.githubusercontent.com/Sridevivaradharajan/Amazon-delivery-time-prediction/main/Model.pkl"
-
-# Change loader if you saved with joblib
-model = load_model_from_github(github_url, loader="pickle")
-
-if model:
-    st.success("Model loaded successfully from GitHub!")
-else:
-    st.error("Model could not be loaded from GitHub.")
 
 # Custom CSS for enhances styling
 st.markdown("""
@@ -641,10 +616,24 @@ def prediction_page(model, metrics):
                             st.error("All calculated distances are zero or negative. Please check coordinates.")
                             st.stop()
                         
-                        bins = [0, 5, 10, 15, 20, max_distance + 1]
-                        labels = ['0_5km', '5_10km', '10_15km', '15_20km', '20+km']
+                        # Ensure bins are monotonically increasing
+                        if max_distance <= 5:
+                            bins = [0, max_distance + 0.1]
+                            labels = ['0_5km']
+                        elif max_distance <= 10:
+                            bins = [0, 5, max_distance + 0.1]
+                            labels = ['0_5km', '5_10km']
+                        elif max_distance <= 15:
+                            bins = [0, 5, 10, max_distance + 0.1]
+                            labels = ['0_5km', '5_10km', '10_15km']
+                        elif max_distance <= 20:
+                            bins = [0, 5, 10, 15, max_distance + 0.1]
+                            labels = ['0_5km', '5_10km', '10_15km', '15_20km']
+                        else:
+                            bins = [0, 5, 10, 15, 20, max_distance + 1]
+                            labels = ['0_5km', '5_10km', '10_15km', '15_20km', '20+km']
+                        
                         df['Distance_Bin'] = pd.cut(df['Distance'], bins=bins, labels=labels, right=False)
-                        df['Distance_Bin'] = df['Distance_Bin'].astype(str)
                         
                         # CRITICAL FIX: Reorder columns to match training order
                         feature_order = [
@@ -1120,4 +1109,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
