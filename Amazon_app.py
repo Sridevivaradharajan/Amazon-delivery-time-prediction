@@ -312,7 +312,7 @@ def home_page(metrics):
     with col3:
         st.markdown("""
             <div class='metric-card purple-card' style='text-align: center;'>
-                <h3>Data-Driven Analytics</h3>
+                <h3>Data Analytics</h3>
                 <p style='color: #495057; font-size: 15px; line-height: 1.6;'>
                     Comprehensive dashboards for actionable delivery insights
                 </p>
@@ -1131,6 +1131,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
