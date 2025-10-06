@@ -187,9 +187,9 @@ def load_model_and_metrics():
         if response.status_code == 200:
             model = pickle.load(BytesIO(response.content))
             metrics = {
-                'r2': 0.8221,
-                'rmse': 21.8009,
-                'mae': 16.9764
+                'r2': 0.8225,
+                'rmse': 21.7800,
+                'mae': 16.9278
             }
             return model, metrics
         else:
@@ -1178,6 +1178,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
