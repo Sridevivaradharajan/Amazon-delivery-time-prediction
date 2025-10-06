@@ -411,9 +411,9 @@ def prediction_page(model, metrics):
     with col1:
         st.metric("Model R²", f"{metrics['r2']*100:.2f}%")
     with col2:
-        st.metric("RMSE", f"{metrics['rmse']:.2f} hrs")
+        st.metric("RMSE", f"{metrics['rmse']:.2f} min")
     with col3:
-        st.metric("MAE", f"{metrics['mae']:.2f} hrs")
+        st.metric("MAE", f"{metrics['mae']:.2f} min")
     
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -506,15 +506,15 @@ def prediction_page(model, metrics):
                             <h1 style='color: white; font-size: 80px; margin: 20px 0; font-weight: 700;'>
                                 {prediction:.1f}
                             </h1>
-                            <h3 style='color: white; font-size: 28px; font-weight: 500;'>hours</h3>
+                            <h3 style='color: white; font-size: 28px; font-weight: 500;'>minutes</h3>
                         </div>
                     """, unsafe_allow_html=True)
                 
-                days = int(prediction // 24)
-                hours = prediction % 24
+                hours = int(prediction // 60)
+                mins = int(prediction % 60)
                 st.markdown(f"""
                     <p style='text-align: center; font-size: 20px; color: #2d3748; margin-top: 10px;'>
-                        Estimated Delivery: <strong>{days} day(s) and {hours:.1f} hour(s)</strong>
+                        Estimated Delivery: <strong>{hours} hour(s) and {mins} minute(s)</strong>
                     </p>
                 """, unsafe_allow_html=True)
                 
@@ -526,10 +526,11 @@ def prediction_page(model, metrics):
                 with col1:
                     st.metric("Distance", f"{distance:.2f} km", delta="Calculated")
                 with col2:
-                    st.metric("Avg Speed", f"{distance/prediction:.2f} km/h", delta="Estimated")
+                    avg_speed = (distance / (prediction / 60)) if prediction > 0 else 0
+                    st.metric("Avg Speed", f"{avg_speed:.2f} km/h", delta="Estimated")
                 with col3:
                     current_datetime = datetime.now()
-                    estimated_arrival = current_datetime + pd.Timedelta(hours=prediction)
+                    estimated_arrival = current_datetime + pd.Timedelta(minutes=prediction)
                     st.metric("ETA", estimated_arrival.strftime("%H:%M"), delta=estimated_arrival.strftime("%d %b"))
                 
                 st.markdown("<br>", unsafe_allow_html=True)
@@ -558,7 +559,7 @@ def prediction_page(model, metrics):
                 st.error(f"Error making prediction: {str(e)}")
                 st.exception(e)
     
-    # ----------- Bulk Prediction Tab - CORRECTED -----------
+    # ----------- Bulk Prediction Tab -----------
     with tab2:
         st.markdown("### Upload CSV File for Batch Predictions")
         st.info("Your CSV should contain: Agent_Age, Agent_Rating, Store_Latitude, Store_Longitude, Drop_Latitude, Drop_Longitude, Hour, Month, Prep_Time_Min, Weather, Traffic, Vehicle, Area, Category, DayOfWeek")
@@ -616,26 +617,12 @@ def prediction_page(model, metrics):
                             st.error("All calculated distances are zero or negative. Please check coordinates.")
                             st.stop()
                         
-                        # Ensure bins are monotonically increasing
-                        if max_distance <= 5:
-                            bins = [0, max_distance + 0.1]
-                            labels = ['0_5km']
-                        elif max_distance <= 10:
-                            bins = [0, 5, max_distance + 0.1]
-                            labels = ['0_5km', '5_10km']
-                        elif max_distance <= 15:
-                            bins = [0, 5, 10, max_distance + 0.1]
-                            labels = ['0_5km', '5_10km', '10_15km']
-                        elif max_distance <= 20:
-                            bins = [0, 5, 10, 15, max_distance + 0.1]
-                            labels = ['0_5km', '5_10km', '10_15km', '15_20km']
-                        else:
-                            bins = [0, 5, 10, 15, 20, max_distance + 1]
-                            labels = ['0_5km', '5_10km', '10_15km', '15_20km', '20+km']
-                        
+                        bins = [0, 5, 10, 15, 20, max_distance + 1]
+                        labels = ['0_5km', '5_10km', '10_15km', '15_20km', '20+km']
                         df['Distance_Bin'] = pd.cut(df['Distance'], bins=bins, labels=labels, right=False)
+                        df['Distance_Bin'] = df['Distance_Bin'].astype(str)
                         
-                        # CRITICAL FIX: Reorder columns to match training order
+                        # Reorder columns to match training order
                         feature_order = [
                             'Agent_Age', 'Agent_Rating', 
                             'Store_Latitude', 'Store_Longitude',
@@ -661,9 +648,9 @@ def prediction_page(model, metrics):
                         
                         # Make predictions
                         predictions = model.predict(df_pred)
-                        df['Predicted_Delivery_Time'] = predictions
-                        df['Predicted_Days'] = (predictions // 24).astype(int)
-                        df['Predicted_Hours_Remaining'] = predictions % 24
+                        df['Predicted_Delivery_Time_Minutes'] = predictions
+                        df['Predicted_Hours'] = (predictions // 60).astype(int)
+                        df['Predicted_Minutes_Remaining'] = (predictions % 60).astype(int)
                     
                     st.success("Predictions completed!")
                     
@@ -671,21 +658,21 @@ def prediction_page(model, metrics):
                     
                     col1, col2, col3, col4 = st.columns(4)
                     with col1: st.metric("Total Orders", f"{len(df):,}")
-                    with col2: st.metric("Avg Time", f"{df['Predicted_Delivery_Time'].mean():.1f} hrs")
-                    with col3: st.metric("Min Time", f"{df['Predicted_Delivery_Time'].min():.1f} hrs")
-                    with col4: st.metric("Max Time", f"{df['Predicted_Delivery_Time'].max():.1f} hrs")
+                    with col2: st.metric("Avg Time", f"{df['Predicted_Delivery_Time_Minutes'].mean():.1f} min")
+                    with col3: st.metric("Min Time", f"{df['Predicted_Delivery_Time_Minutes'].min():.1f} min")
+                    with col4: st.metric("Max Time", f"{df['Predicted_Delivery_Time_Minutes'].max():.1f} min")
                     
                     st.dataframe(df[['Agent_Age', 'Distance', 'Weather', 'Traffic', 
-                                    'Category', 'Predicted_Delivery_Time', 
-                                    'Predicted_Days', 'Predicted_Hours_Remaining']], use_container_width=True)
+                                    'Category', 'Predicted_Delivery_Time_Minutes', 
+                                    'Predicted_Hours', 'Predicted_Minutes_Remaining']], use_container_width=True)
                     
                     st.markdown("### Prediction Distribution")
                     
-                    fig = px.histogram(df, x='Predicted_Delivery_Time', nbins=30,
+                    fig = px.histogram(df, x='Predicted_Delivery_Time_Minutes', nbins=30,
                                      title="Distribution of Predicted Delivery Times")
                     fig.update_traces(marker_color='#667eea', marker_line_color='white', marker_line_width=1.5)
                     fig.update_layout(
-                        xaxis_title="Delivery Time (hours)", 
+                        xaxis_title="Delivery Time (minutes)", 
                         yaxis_title="Count",
                         template="plotly_white",
                         font=dict(family="Inter, sans-serif")
@@ -1109,6 +1096,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
