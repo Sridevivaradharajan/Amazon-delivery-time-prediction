@@ -758,18 +758,24 @@ def user_data_analysis_page():
     
     if uploaded_file is not None:
         try:
-            df = pd.read_csv(uploaded_file)
+            # Read and cache the dataframe
+            @st.cache_data
+            def load_and_process_data(file):
+                df = pd.read_csv(file)
+                
+                # Calculate distance if needed
+                if all(col in df.columns for col in ['Store_Latitude', 'Store_Longitude', 'Drop_Latitude', 'Drop_Longitude']):
+                    if 'Distance' not in df.columns:
+                        df['Distance'] = df.apply(lambda row: haversine(
+                            row['Store_Latitude'], row['Store_Longitude'],
+                            row['Drop_Latitude'], row['Drop_Longitude']
+                        ), axis=1)
+                
+                return df
+            
+            df = load_and_process_data(uploaded_file)
             
             st.success(f"File uploaded successfully! {len(df):,} records loaded and ready for analysis.")
-            
-            # Calculate distance
-            if all(col in df.columns for col in ['Store_Latitude', 'Store_Longitude', 'Drop_Latitude', 'Drop_Longitude']):
-                if 'Distance' not in df.columns:
-                    df['Distance'] = df.apply(lambda row: haversine(
-                        row['Store_Latitude'], row['Store_Longitude'],
-                        row['Drop_Latitude'], row['Drop_Longitude']
-                    ), axis=1)
-                    st.info("Distance calculated from coordinates using Haversine formula")
             
             # Data preview
             st.markdown("### Data Preview")
@@ -820,172 +826,198 @@ def user_data_analysis_page():
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # Create tabs for organized visualizations including a new one for quality
+            # Create tabs for organized visualizations
             viz_tab1, viz_tab2, viz_tab3, viz_tab4, viz_tab5 = st.tabs([
                 "Distributions", "Relationships", "Time Analysis", "Geographic Analysis", "Data Quality & Correlation"
             ])
             
-            # Tab 1: Distributions
+            # Tab 1: Distributions - ONLY LOAD WHEN TAB IS SELECTED
             with viz_tab1:
                 st.markdown("#### Distribution Analysis")
-                if 'Delivery_Time' in df.columns:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        fig1 = px.histogram(df, x='Delivery_Time', nbins=30, title="Delivery Time Distribution", marginal="box")
-                        fig1.update_traces(marker_color='#667eea', marker_line_color='white', marker_line_width=1.5)
-                        fig1.update_layout(template="plotly_white", xaxis_title="Delivery Time (minutes)", yaxis_title="Frequency", showlegend=False)
-                        st.plotly_chart(fig1, use_container_width=True)
-                    with col2:
-                        fig_box = px.box(df, y='Delivery_Time', title="Delivery Time Spread & Outliers")
-                        fig_box.update_traces(marker_color='#764ba2')
-                        fig_box.update_layout(template="plotly_white", yaxis_title="Delivery Time (minutes)", showlegend=False)
-                        st.plotly_chart(fig_box, use_container_width=True)
                 
-                if 'Distance' in df.columns:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        fig_dist = px.histogram(df, x='Distance', nbins=30, title="Distance Distribution", marginal="violin")
-                        fig_dist.update_traces(marker_color='#4facfe', marker_line_color='white', marker_line_width=1.5)
-                        fig_dist.update_layout(template="plotly_white", xaxis_title="Distance (km)", yaxis_title="Frequency", showlegend=False)
-                        st.plotly_chart(fig_dist, use_container_width=True)
-                    with col2:
-                        if 'Agent_Rating' in df.columns:
-                            fig_rating = px.histogram(df, x='Agent_Rating', title="Agent Rating Distribution", nbins=20)
-                            fig_rating.update_traces(marker_color='#f093fb', marker_line_color='white', marker_line_width=1.5)
-                            fig_rating.update_layout(template="plotly_white", xaxis_title="Agent Rating", yaxis_title="Frequency", showlegend=False)
-                            st.plotly_chart(fig_rating, use_container_width=True)
+                # Use expander to further optimize loading
+                with st.expander("📊 View Distribution Charts", expanded=True):
+                    if 'Delivery_Time' in df.columns:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            fig1 = px.histogram(df, x='Delivery_Time', nbins=30, title="Delivery Time Distribution", marginal="box")
+                            fig1.update_traces(marker_color='#667eea', marker_line_color='white', marker_line_width=1.5)
+                            fig1.update_layout(template="plotly_white", xaxis_title="Delivery Time (minutes)", yaxis_title="Frequency", showlegend=False, height=400)
+                            st.plotly_chart(fig1, use_container_width=True)
+                        with col2:
+                            fig_box = px.box(df, y='Delivery_Time', title="Delivery Time Spread & Outliers")
+                            fig_box.update_traces(marker_color='#764ba2')
+                            fig_box.update_layout(template="plotly_white", yaxis_title="Delivery Time (minutes)", showlegend=False, height=400)
+                            st.plotly_chart(fig_box, use_container_width=True)
+                    
+                    if 'Distance' in df.columns:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            fig_dist = px.histogram(df, x='Distance', nbins=30, title="Distance Distribution", marginal="violin")
+                            fig_dist.update_traces(marker_color='#4facfe', marker_line_color='white', marker_line_width=1.5)
+                            fig_dist.update_layout(template="plotly_white", xaxis_title="Distance (km)", yaxis_title="Frequency", showlegend=False, height=400)
+                            st.plotly_chart(fig_dist, use_container_width=True)
+                        with col2:
+                            if 'Agent_Rating' in df.columns:
+                                fig_rating = px.histogram(df, x='Agent_Rating', title="Agent Rating Distribution", nbins=20)
+                                fig_rating.update_traces(marker_color='#f093fb', marker_line_color='white', marker_line_width=1.5)
+                                fig_rating.update_layout(template="plotly_white", xaxis_title="Agent Rating", yaxis_title="Frequency", showlegend=False, height=400)
+                                st.plotly_chart(fig_rating, use_container_width=True)
             
             # Tab 2: Relationships
             with viz_tab2:
                 st.markdown("#### Relationship Analysis")
-                if 'Distance' in df.columns and 'Delivery_Time' in df.columns:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        fig3 = px.scatter(df, x='Distance', y='Delivery_Time',
-                                          color='Traffic' if 'Traffic' in df.columns else None,
-                                          hover_data=df.columns.tolist(), title="Distance vs Delivery Time", trendline="ols")
-                        fig3.update_traces(marker=dict(size=8, line=dict(width=1, color='white')))
-                        fig3.update_layout(template="plotly_white", xaxis_title="Distance (km)", yaxis_title="Delivery Time (minutes)")
-                        st.plotly_chart(fig3, use_container_width=True)
-                    with col2:
-                        if 'Agent_Rating' in df.columns:
-                            fig_rating_time = px.scatter(df, x='Agent_Rating', y='Delivery_Time',
-                                                        color='Vehicle' if 'Vehicle' in df.columns else None,
-                                                        title="Agent Rating vs Delivery Time")
-                            fig_rating_time.update_traces(marker=dict(size=8, line=dict(width=1, color='white')))
-                            fig_rating_time.update_layout(template="plotly_white", xaxis_title="Agent Rating", yaxis_title="Delivery Time (minutes)")
-                            st.plotly_chart(fig_rating_time, use_container_width=True)
                 
-                if 'Category' in df.columns:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        cat_counts = df['Category'].value_counts().reset_index()
-                        cat_counts.columns = ['Category', 'Count']
-                        fig2 = px.bar(cat_counts, x='Category', y='Count', title="Orders by Product Category")
-                        fig2.update_traces(marker_color='#667eea')
-                        fig2.update_layout(template="plotly_white", xaxis_tickangle=-45, showlegend=False)
-                        st.plotly_chart(fig2, use_container_width=True)
-                    with col2:
-                        fig_pie = px.pie(cat_counts, values='Count', names='Category', title="Category Distribution")
-                        fig_pie.update_traces(textposition='inside', textinfo='percent+label')
-                        fig_pie.update_layout(template="plotly_white")
-                        st.plotly_chart(fig_pie, use_container_width=True)
-                
-                if 'Weather' in df.columns and 'Traffic' in df.columns:
-                    fig_heatmap = px.density_heatmap(df, x='Weather', y='Traffic', title="Weather vs Traffic Conditions Heatmap", marginal_x="box", marginal_y="box")
-                    fig_heatmap.update_layout(template="plotly_white")
-                    st.plotly_chart(fig_heatmap, use_container_width=True)
+                with st.expander("📈 View Relationship Charts", expanded=True):
+                    if 'Distance' in df.columns and 'Delivery_Time' in df.columns:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            # Limit data points for scatter plot performance
+                            plot_df = df.sample(n=min(1000, len(df)), random_state=42)
+                            fig3 = px.scatter(plot_df, x='Distance', y='Delivery_Time',
+                                              color='Traffic' if 'Traffic' in df.columns else None,
+                                              title="Distance vs Delivery Time", trendline="ols")
+                            fig3.update_traces(marker=dict(size=6, line=dict(width=0.5, color='white')))
+                            fig3.update_layout(template="plotly_white", xaxis_title="Distance (km)", yaxis_title="Delivery Time (minutes)", height=400)
+                            st.plotly_chart(fig3, use_container_width=True)
+                            if len(df) > 1000:
+                                st.caption(f"Showing 1,000 of {len(df):,} points for performance")
+                        
+                        with col2:
+                            if 'Agent_Rating' in df.columns:
+                                plot_df = df.sample(n=min(1000, len(df)), random_state=42)
+                                fig_rating_time = px.scatter(plot_df, x='Agent_Rating', y='Delivery_Time',
+                                                            color='Vehicle' if 'Vehicle' in df.columns else None,
+                                                            title="Agent Rating vs Delivery Time")
+                                fig_rating_time.update_traces(marker=dict(size=6, line=dict(width=0.5, color='white')))
+                                fig_rating_time.update_layout(template="plotly_white", xaxis_title="Agent Rating", yaxis_title="Delivery Time (minutes)", height=400)
+                                st.plotly_chart(fig_rating_time, use_container_width=True)
+                    
+                    if 'Category' in df.columns:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            cat_counts = df['Category'].value_counts().reset_index()
+                            cat_counts.columns = ['Category', 'Count']
+                            fig2 = px.bar(cat_counts, x='Category', y='Count', title="Orders by Product Category")
+                            fig2.update_traces(marker_color='#667eea')
+                            fig2.update_layout(template="plotly_white", xaxis_tickangle=-45, showlegend=False, height=400)
+                            st.plotly_chart(fig2, use_container_width=True)
+                        with col2:
+                            fig_pie = px.pie(cat_counts, values='Count', names='Category', title="Category Distribution")
+                            fig_pie.update_traces(textposition='inside', textinfo='percent+label')
+                            fig_pie.update_layout(template="plotly_white", height=400)
+                            st.plotly_chart(fig_pie, use_container_width=True)
+                    
+                    if 'Weather' in df.columns and 'Traffic' in df.columns:
+                        fig_heatmap = px.density_heatmap(df, x='Weather', y='Traffic', title="Weather vs Traffic Conditions Heatmap")
+                        fig_heatmap.update_layout(template="plotly_white", height=400)
+                        st.plotly_chart(fig_heatmap, use_container_width=True)
             
             # Tab 3: Time Analysis
             with viz_tab3:
                 st.markdown("#### Time-Based Analysis")
-                col1, col2 = st.columns(2)
-                with col1:
-                    if 'Hour' in df.columns:
-                        hour_counts = df['Hour'].value_counts().sort_index().reset_index()
-                        hour_counts.columns = ['Hour', 'Count']
-                        fig5 = px.bar(hour_counts, x='Hour', y='Count', title="Orders by Hour of Day")
-                        fig5.update_traces(marker_color='#667eea')
-                        fig5.update_layout(template="plotly_white", xaxis_title="Hour (24-hour format)", yaxis_title="Number of Orders", showlegend=False)
-                        st.plotly_chart(fig5, use_container_width=True)
-                with col2:
-                    if 'DayOfWeek' in df.columns:
-                        day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-                        day_counts = df['DayOfWeek'].value_counts().reindex(day_order).reset_index()
-                        day_counts.columns = ['Day', 'Count']
-                        fig_day = px.bar(day_counts, x='Day', y='Count', title="Orders by Day of Week")
-                        fig_day.update_traces(marker_color='#764ba2')
-                        fig_day.update_layout(template="plotly_white", xaxis_title="Day of Week", yaxis_title="Number of Orders", showlegend=False)
-                        st.plotly_chart(fig_day, use_container_width=True)
-                if 'Month' in df.columns:
-                    month_counts = df['Month'].value_counts().sort_index().reset_index()
-                    month_counts.columns = ['Month', 'Count']
-                    month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-                    month_counts['Month_Name'] = month_counts['Month'].apply(lambda x: month_names[int(x)-1] if 1 <= x <= 12 else str(x))
-                    fig_month = px.line(month_counts, x='Month_Name', y='Count', title="Orders by Month", markers=True)
-                    fig_month.update_traces(line_color='#4facfe', marker=dict(size=10, color='#667eea', line=dict(width=2, color='white')))
-                    fig_month.update_layout(template="plotly_white", xaxis_title="Month", yaxis_title="Number of Orders")
-                    st.plotly_chart(fig_month, use_container_width=True)
+                
+                with st.expander("🕐 View Time-Based Charts", expanded=True):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if 'Hour' in df.columns:
+                            hour_counts = df['Hour'].value_counts().sort_index().reset_index()
+                            hour_counts.columns = ['Hour', 'Count']
+                            fig5 = px.bar(hour_counts, x='Hour', y='Count', title="Orders by Hour of Day")
+                            fig5.update_traces(marker_color='#667eea')
+                            fig5.update_layout(template="plotly_white", xaxis_title="Hour (24-hour format)", yaxis_title="Number of Orders", showlegend=False, height=400)
+                            st.plotly_chart(fig5, use_container_width=True)
+                    with col2:
+                        if 'DayOfWeek' in df.columns:
+                            day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                            day_counts = df['DayOfWeek'].value_counts().reindex(day_order).reset_index()
+                            day_counts.columns = ['Day', 'Count']
+                            fig_day = px.bar(day_counts, x='Day', y='Count', title="Orders by Day of Week")
+                            fig_day.update_traces(marker_color='#764ba2')
+                            fig_day.update_layout(template="plotly_white", xaxis_title="Day of Week", yaxis_title="Number of Orders", showlegend=False, height=400)
+                            st.plotly_chart(fig_day, use_container_width=True)
+                    
+                    if 'Month' in df.columns:
+                        month_counts = df['Month'].value_counts().sort_index().reset_index()
+                        month_counts.columns = ['Month', 'Count']
+                        month_names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                        month_counts['Month_Name'] = month_counts['Month'].apply(lambda x: month_names[int(x)-1] if 1 <= x <= 12 else str(x))
+                        fig_month = px.line(month_counts, x='Month_Name', y='Count', title="Orders by Month", markers=True)
+                        fig_month.update_traces(line_color='#4facfe', marker=dict(size=10, color='#667eea', line=dict(width=2, color='white')))
+                        fig_month.update_layout(template="plotly_white", xaxis_title="Month", yaxis_title="Number of Orders", height=400)
+                        st.plotly_chart(fig_month, use_container_width=True)
             
             # Tab 4: Geographic Analysis
             with viz_tab4:
                 st.markdown("#### Geographic Analysis")
-                if all(col in df.columns for col in ['Store_Latitude', 'Store_Longitude']):
-                    try:
+                
+                with st.expander("🗺️ View Geographic Charts", expanded=True):
+                    if all(col in df.columns for col in ['Store_Latitude', 'Store_Longitude']):
+                        try:
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.markdown("##### Store Locations Map")
+                                # Sample for performance
+                                map_df = df[['Store_Latitude', 'Store_Longitude']].dropna().sample(n=min(500, len(df)), random_state=42).rename(columns={'Store_Latitude': 'lat', 'Store_Longitude': 'lon'})
+                                if not map_df.empty:
+                                    st.map(map_df, zoom=10)
+                                    if len(df) > 500:
+                                        st.caption(f"Showing 500 of {len(df):,} locations")
+                            with col2:
+                                if 'Delivery_Time' in df.columns:
+                                    st.markdown("##### Performance by Location")
+                                    sample_df = df.sample(n=min(500, len(df)), random_state=42)
+                                    fig_geo = px.scatter_mapbox(sample_df, lat='Store_Latitude', lon='Store_Longitude',
+                                                                color='Delivery_Time', size='Delivery_Time',
+                                                                hover_data=['Distance'] if 'Distance' in df.columns else None,
+                                                                zoom=10, title="Delivery Time by Location")
+                                    fig_geo.update_layout(mapbox_style="open-street-map", height=400)
+                                    st.plotly_chart(fig_geo, use_container_width=True)
+                        except Exception:
+                            st.info("Could not render geographic visualizations.")
+                    
+                    if 'Area' in df.columns:
                         col1, col2 = st.columns(2)
                         with col1:
-                            st.markdown("##### Store Locations Map")
-                            map_df = df[['Store_Latitude', 'Store_Longitude']].dropna().rename(columns={'Store_Latitude': 'lat', 'Store_Longitude': 'lon'})
-                            if not map_df.empty:
-                                st.map(map_df, zoom=10)
+                            area_counts = df['Area'].value_counts().reset_index()
+                            area_counts.columns = ['Area', 'Count']
+                            fig_area = px.bar(area_counts, x='Area', y='Count', title="Orders by Area Type")
+                            fig_area.update_traces(marker_color='#667eea')
+                            fig_area.update_layout(template="plotly_white", showlegend=False, height=400)
+                            st.plotly_chart(fig_area, use_container_width=True)
                         with col2:
                             if 'Delivery_Time' in df.columns:
-                                st.markdown("##### Performance by Location")
-                                fig_geo = px.scatter_mapbox(df, lat='Store_Latitude', lon='Store_Longitude',
-                                                            color='Delivery_Time', size='Delivery_Time',
-                                                            hover_data=['Distance'] if 'Distance' in df.columns else None,
-                                                            zoom=10, title="Delivery Time by Location")
-                                fig_geo.update_layout(mapbox_style="open-street-map", height=400)
-                                st.plotly_chart(fig_geo, use_container_width=True)
-                    except Exception:
-                        st.info("Could not render geographic visualizations.")
-                
-                if 'Area' in df.columns:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        area_counts = df['Area'].value_counts().reset_index()
-                        area_counts.columns = ['Area', 'Count']
-                        fig_area = px.bar(area_counts, x='Area', y='Count', title="Orders by Area Type")
-                        fig_area.update_traces(marker_color='#667eea')
-                        fig_area.update_layout(template="plotly_white", showlegend=False)
-                        st.plotly_chart(fig_area, use_container_width=True)
-                    with col2:
-                        if 'Delivery_Time' in df.columns:
-                            fig_area_time = px.box(df, x='Area', y='Delivery_Time', title="Delivery Time by Area Type")
-                            fig_area_time.update_traces(marker_color='#764ba2')
-                            fig_area_time.update_layout(template="plotly_white", yaxis_title="Delivery Time (minutes)")
-                            st.plotly_chart(fig_area_time, use_container_width=True)
+                                fig_area_time = px.box(df, x='Area', y='Delivery_Time', title="Delivery Time by Area Type")
+                                fig_area_time.update_traces(marker_color='#764ba2')
+                                fig_area_time.update_layout(template="plotly_white", yaxis_title="Delivery Time (minutes)", height=400)
+                                st.plotly_chart(fig_area_time, use_container_width=True)
             
             # Tab 5: Data Quality & Correlation
             with viz_tab5:
-                st.markdown("### Feature Correlation Matrix")
-                numeric_cols = df.select_dtypes(include=['number']).columns
-                if len(numeric_cols) > 1:
-                    corr = df[numeric_cols].corr()
-                    fig6 = go.Figure(data=go.Heatmap(
-                        z=corr.values,
-                        x=corr.columns,
-                        y=corr.columns,
-                        colorscale='RdBu_r',
-                        zmid=0,
-                        text=np.round(corr.values, 2),
-                        texttemplate='%{text}',
-                        textfont={"size": 10},
-                        showscale=True,
-                        colorbar=dict(title="Correlation")
-                    ))
-                    fig6.update_layout(title="Correlation Heatmap (Numeric Features)", template="plotly_white", width=800, height=600, xaxis_showgrid=False, yaxis_showgrid=False)
-                    st.plotly_chart(fig6, use_container_width=True)
+                with st.expander("🔍 View Correlation Matrix", expanded=True):
+                    st.markdown("### Feature Correlation Matrix")
+                    numeric_cols = df.select_dtypes(include=['number']).columns
+                    if len(numeric_cols) > 1:
+                        # Limit to max 15 columns for performance
+                        if len(numeric_cols) > 15:
+                            numeric_cols = numeric_cols[:15]
+                            st.info(f"Showing top 15 numeric features for performance")
+                        
+                        corr = df[numeric_cols].corr()
+                        fig6 = go.Figure(data=go.Heatmap(
+                            z=corr.values,
+                            x=corr.columns,
+                            y=corr.columns,
+                            colorscale='RdBu_r',
+                            zmid=0,
+                            text=np.round(corr.values, 2),
+                            texttemplate='%{text}',
+                            textfont={"size": 10},
+                            showscale=True,
+                            colorbar=dict(title="Correlation")
+                        ))
+                        fig6.update_layout(title="Correlation Heatmap (Numeric Features)", template="plotly_white", height=600, xaxis_showgrid=False, yaxis_showgrid=False)
+                        st.plotly_chart(fig6, use_container_width=True)
 
                 st.markdown("### Data Quality Report")
                 col1, col2, col3 = st.columns(3)
@@ -1024,7 +1056,8 @@ def user_data_analysis_page():
                     data=csv,
                     file_name=f"processed_delivery_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
-                    use_container_width=True
+                    use_container_width=True,
+                    key="download_analysis_data"
                 )
             
         except Exception as e:
@@ -1145,6 +1178,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
