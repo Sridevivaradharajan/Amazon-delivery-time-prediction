@@ -772,8 +772,8 @@ def user_data_analysis_page():
                 metric_col1, metric_col2 = st.columns(2)
                 with metric_col1:
                     if 'Delivery_Time' in df.columns:
-                        st.metric("Avg Delivery Time", f"{df['Delivery_Time'].mean():.1f} hrs")
-                        st.metric("Max Delivery Time", f"{df['Delivery_Time'].max():.1f} hrs")
+                        st.metric("Avg Delivery Time", f"{df['Delivery_Time'].mean():.1f} min")
+                        st.metric("Max Delivery Time", f"{df['Delivery_Time'].max():.1f} min")
                     elif 'Distance' in df.columns:
                         st.metric("Avg Distance", f"{df['Distance'].mean():.1f} km")
                         st.metric("Max Distance", f"{df['Distance'].max():.1f} km")
@@ -783,7 +783,7 @@ def user_data_analysis_page():
                         st.metric("Avg Agent Rating", f"{df['Agent_Rating'].mean():.2f}/5.0")
                         st.metric("Top Rating", f"{df['Agent_Rating'].max():.2f}/5.0")
                     elif 'Delivery_Time' in df.columns:
-                        st.metric("Min Delivery Time", f"{df['Delivery_Time'].min():.1f} hrs")
+                        st.metric("Min Delivery Time", f"{df['Delivery_Time'].min():.1f} min")
             
             st.markdown("<br>", unsafe_allow_html=True)
             
@@ -800,12 +800,12 @@ def user_data_analysis_page():
                     with col1:
                         fig1 = px.histogram(df, x='Delivery_Time', nbins=30, title="Delivery Time Distribution", marginal="box")
                         fig1.update_traces(marker_color='#667eea', marker_line_color='white', marker_line_width=1.5)
-                        fig1.update_layout(template="plotly_white", xaxis_title="Delivery Time (hours)", yaxis_title="Frequency", showlegend=False)
+                        fig1.update_layout(template="plotly_white", xaxis_title="Delivery Time (minutes)", yaxis_title="Frequency", showlegend=False)
                         st.plotly_chart(fig1, use_container_width=True)
                     with col2:
                         fig_box = px.box(df, y='Delivery_Time', title="Delivery Time Spread & Outliers")
                         fig_box.update_traces(marker_color='#764ba2')
-                        fig_box.update_layout(template="plotly_white", yaxis_title="Delivery Time (hours)", showlegend=False)
+                        fig_box.update_layout(template="plotly_white", yaxis_title="Delivery Time (minutes)", showlegend=False)
                         st.plotly_chart(fig_box, use_container_width=True)
                 
                 if 'Distance' in df.columns:
@@ -832,7 +832,7 @@ def user_data_analysis_page():
                                           color='Traffic' if 'Traffic' in df.columns else None,
                                           hover_data=df.columns.tolist(), title="Distance vs Delivery Time", trendline="ols")
                         fig3.update_traces(marker=dict(size=8, line=dict(width=1, color='white')))
-                        fig3.update_layout(template="plotly_white", xaxis_title="Distance (km)", yaxis_title="Delivery Time (hours)")
+                        fig3.update_layout(template="plotly_white", xaxis_title="Distance (km)", yaxis_title="Delivery Time (minutes)")
                         st.plotly_chart(fig3, use_container_width=True)
                     with col2:
                         if 'Agent_Rating' in df.columns:
@@ -840,7 +840,7 @@ def user_data_analysis_page():
                                                         color='Vehicle' if 'Vehicle' in df.columns else None,
                                                         title="Agent Rating vs Delivery Time")
                             fig_rating_time.update_traces(marker=dict(size=8, line=dict(width=1, color='white')))
-                            fig_rating_time.update_layout(template="plotly_white", xaxis_title="Agent Rating", yaxis_title="Delivery Time (hours)")
+                            fig_rating_time.update_layout(template="plotly_white", xaxis_title="Agent Rating", yaxis_title="Delivery Time (minutes)")
                             st.plotly_chart(fig_rating_time, use_container_width=True)
                 
                 if 'Category' in df.columns:
@@ -930,7 +930,7 @@ def user_data_analysis_page():
                         if 'Delivery_Time' in df.columns:
                             fig_area_time = px.box(df, x='Area', y='Delivery_Time', title="Delivery Time by Area Type")
                             fig_area_time.update_traces(marker_color='#764ba2')
-                            fig_area_time.update_layout(template="plotly_white", yaxis_title="Delivery Time (hours)")
+                            fig_area_time.update_layout(template="plotly_white", yaxis_title="Delivery Time (minutes)")
                             st.plotly_chart(fig_area_time, use_container_width=True)
             
             # Tab 5: Data Quality & Correlation
@@ -1111,6 +1111,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
