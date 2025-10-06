@@ -711,7 +711,7 @@ def prediction_page(model, metrics):
                             
                             # Store in session state AFTER predictions are added
                             st.session_state.bulk_prediction_result = df
-                            st.rerun()  # Force rerun to show results
+                            st.experimental_rerun()   # Force rerun to show results
                 
                 # Display results from session state ONLY if predictions exist
                 if (st.session_state.bulk_prediction_result is not None and 
@@ -749,9 +749,9 @@ def prediction_page(model, metrics):
                     # Add option to generate new predictions
                     col1, col2, col3 = st.columns([1, 2, 1])
                     with col1:
-                        if st.button("Generate New Predictions", use_container_width=True, key="regenerate_bulk"):
-                            st.session_state.bulk_prediction_result = None
-                            st.rerun()
+                       if st.button("Generate New Predictions", use_container_width=True, key="regenerate_bulk"):
+                        st.session_state.bulk_prediction_result = None
+                        st.experimental_rerun()
                     
                     with col2:
                         csv_output = df_results.to_csv(index=False)
@@ -1206,6 +1206,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
