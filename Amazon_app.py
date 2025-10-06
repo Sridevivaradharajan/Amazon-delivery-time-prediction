@@ -747,34 +747,9 @@ def prediction_page(model, metrics):
                     st.plotly_chart(fig, use_container_width=True)
                     
                     # Add option to generate new predictions
-                    st.markdown("---")
-                    st.markdown("<h4 style='text-align: center; color: #333;'>Actions</h4>", unsafe_allow_html=True)
-                    
-                    # Use three columns for balanced centering
                     col1, col2, col3 = st.columns([1, 2, 1])
                     
                     with col1:
-                        # Gradient-style button (custom CSS below)
-                        st.markdown(
-                            """
-                            <style>
-                            div[data-testid="stButton"] > button[kind="secondary"] {
-                                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                                color: white;
-                                border: none;
-                                border-radius: 10px;
-                                font-weight: 600;
-                                padding: 0.6em 1em;
-                                transition: all 0.3s ease;
-                            }
-                            div[data-testid="stButton"] > button[kind="secondary"]:hover {
-                                transform: scale(1.02);
-                                background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
-                            }
-                            </style>
-                            """,
-                            unsafe_allow_html=True
-                        )
                         if st.button("Generate New Predictions", use_container_width=True, key="regenerate_bulk"):
                             st.session_state.bulk_prediction_result = None
                             st.experimental_rerun()
@@ -1232,6 +1207,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
