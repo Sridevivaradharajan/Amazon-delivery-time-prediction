@@ -617,8 +617,23 @@ def prediction_page(model, metrics):
                             st.error("All calculated distances are zero or negative. Please check coordinates.")
                             st.stop()
                         
-                        bins = [0, 5, 10, 15, 20, max_distance + 1]
-                        labels = ['0_5km', '5_10km', '10_15km', '15_20km', '20+km']
+                        # Create bins that ensure monotonic increase
+                        if max_distance <= 5:
+                            bins = [0, max_distance + 0.1]
+                            labels = ['0_5km']
+                        elif max_distance <= 10:
+                            bins = [0, 5, max_distance + 0.1]
+                            labels = ['0_5km', '5_10km']
+                        elif max_distance <= 15:
+                            bins = [0, 5, 10, max_distance + 0.1]
+                            labels = ['0_5km', '5_10km', '10_15km']
+                        elif max_distance <= 20:
+                            bins = [0, 5, 10, 15, max_distance + 0.1]
+                            labels = ['0_5km', '5_10km', '10_15km', '15_20km']
+                        else:
+                            bins = [0, 5, 10, 15, 20, max_distance + 0.1]
+                            labels = ['0_5km', '5_10km', '10_15km', '15_20km', '20+km']
+                        
                         df['Distance_Bin'] = pd.cut(df['Distance'], bins=bins, labels=labels, right=False)
                         df['Distance_Bin'] = df['Distance_Bin'].astype(str)
                         
@@ -1096,6 +1111,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
