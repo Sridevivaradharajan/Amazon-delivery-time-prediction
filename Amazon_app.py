@@ -20,6 +20,8 @@ def init_session_state():
         st.session_state.single_prediction_result = None
     if 'bulk_prediction_result' not in st.session_state:
         st.session_state.bulk_prediction_result = None
+    if 'last_uploaded_file_name' not in st.session_state:
+        st.session_state.last_uploaded_file_name = None
         
 # Page configuration
 st.set_page_config(
@@ -591,150 +593,176 @@ def prediction_page(model, metrics):
         with col1:
             uploaded_file = st.file_uploader("Choose a CSV file", type=['csv'], key="bulk_upload")
         with col2:
-            if st.button("Download Sample Template", use_container_width=True, key="download_template"):
-                sample_data = pd.DataFrame({
-                    'Agent_Age': [30, 25, 35],
-                    'Agent_Rating': [4.5, 4.2, 4.8],
-                    'Store_Latitude': [28.6139, 28.6500, 28.5800],
-                    'Store_Longitude': [77.2090, 77.2300, 77.1900],
-                    'Drop_Latitude': [28.7041, 28.7200, 28.6500],
-                    'Drop_Longitude': [77.1025, 77.1100, 77.1500],
-                    'Hour': [12, 14, 16],
-                    'Month': [3, 3, 3],
-                    'Prep_Time_Min': [30, 25, 35],
-                    'Weather': ['Sunny', 'Cloudy', 'Rainy'],
-                    'Traffic': ['Medium', 'High', 'Low'],
-                    'Vehicle': ['bike', 'scooter', 'motorcycle'],
-                    'Area': ['Urban', 'Metropolitian', 'Urban'],
-                    'Category': ['Electronics', 'Grocery', 'Clothing'],
-                    'DayOfWeek': ['Monday', 'Tuesday', 'Wednesday']
-                })
-                csv = sample_data.to_csv(index=False)
-                st.download_button(
-                    label="Download CSV",
-                    data=csv,
-                    file_name="delivery_prediction_template.csv",
-                    mime="text/csv",
-                    use_container_width=True,
-                    key="download_csv"
-                )
+            sample_data = pd.DataFrame({
+                'Agent_Age': [30, 25, 35],
+                'Agent_Rating': [4.5, 4.2, 4.8],
+                'Store_Latitude': [28.6139, 28.6500, 28.5800],
+                'Store_Longitude': [77.2090, 77.2300, 77.1900],
+                'Drop_Latitude': [28.7041, 28.7200, 28.6500],
+                'Drop_Longitude': [77.1025, 77.1100, 77.1500],
+                'Hour': [12, 14, 16],
+                'Month': [3, 3, 3],
+                'Prep_Time_Min': [30, 25, 35],
+                'Weather': ['Sunny', 'Cloudy', 'Rainy'],
+                'Traffic': ['Medium', 'High', 'Low'],
+                'Vehicle': ['bike', 'scooter', 'motorcycle'],
+                'Area': ['Urban', 'Metropolitian', 'Urban'],
+                'Category': ['Electronics', 'Grocery', 'Clothing'],
+                'DayOfWeek': ['Monday', 'Tuesday', 'Wednesday']
+            })
+            csv_template = sample_data.to_csv(index=False)
+            st.download_button(
+                label="Download Sample Template",
+                data=csv_template,
+                file_name="delivery_prediction_template.csv",
+                mime="text/csv",
+                use_container_width=True,
+                key="download_template"
+            )
         
         if uploaded_file is not None:
             try:
-                df = pd.read_csv(uploaded_file)
+                # Cache the uploaded file data to avoid re-reading
+                @st.cache_data
+                def load_uploaded_csv(file):
+                    return pd.read_csv(file)
+                
+                df = load_uploaded_csv(uploaded_file)
                 st.success(f"File uploaded successfully! {len(df)} records found.")
                 
                 st.markdown("### Data Preview")
                 st.dataframe(df.head(10), use_container_width=True)
                 
-                if st.button("Generate Predictions", use_container_width=True, key="generate_bulk"):
-                    with st.spinner("Processing predictions..."):
-                        # Calculate distance for all rows
-                        df['Distance'] = df.apply(lambda row: haversine(
-                            row['Store_Latitude'], row['Store_Longitude'],
-                            row['Drop_Latitude'], row['Drop_Longitude']
-                        ), axis=1)
-                        
-                        # Create distance bins
-                        max_distance = df['Distance'].max()
-                        if max_distance <= 0:
-                            st.error("All calculated distances are zero or negative. Please check coordinates.")
-                            st.stop()
-                        
-                        # Create bins that ensure monotonic increase
-                        if max_distance <= 5:
-                            bins = [0, max_distance + 0.1]
-                            labels = ['0_5km']
-                        elif max_distance <= 10:
-                            bins = [0, 5, max_distance + 0.1]
-                            labels = ['0_5km', '5_10km']
-                        elif max_distance <= 15:
-                            bins = [0, 5, 10, max_distance + 0.1]
-                            labels = ['0_5km', '5_10km', '10_15km']
-                        elif max_distance <= 20:
-                            bins = [0, 5, 10, 15, max_distance + 0.1]
-                            labels = ['0_5km', '5_10km', '10_15km', '15_20km']
-                        else:
-                            bins = [0, 5, 10, 15, 20, max_distance + 0.1]
-                            labels = ['0_5km', '5_10km', '10_15km', '15_20km', '20+km']
-                        
-                        df['Distance_Bin'] = pd.cut(df['Distance'], bins=bins, labels=labels, right=False)
-                        df['Distance_Bin'] = df['Distance_Bin'].astype(str)
-                        
-                        # Reorder columns to match training order
-                        feature_order = [
-                            'Agent_Age', 'Agent_Rating', 
-                            'Store_Latitude', 'Store_Longitude',
-                            'Drop_Latitude', 'Drop_Longitude',
-                            'Distance', 'Hour', 'Month', 'Prep_Time_Min',
-                            'Weather', 'Traffic', 'Vehicle', 'Area', 
-                            'Category', 'Distance_Bin', 'DayOfWeek'
-                        ]
-                        
-                        # Check for missing columns
-                        missing_cols = [col for col in feature_order if col not in df.columns]
-                        if missing_cols:
-                            st.error(f"Missing required columns: {missing_cols}")
-                            st.stop()
-                        
-                        # Create prediction DataFrame with exact feature order
-                        df_pred = df[feature_order].copy()
-                        
-                        # Convert categorical columns to category dtype
-                        categorical_cols = ['Weather', 'Traffic', 'Vehicle', 'Area', 'Category', 'Distance_Bin', 'DayOfWeek']
-                        for col in categorical_cols:
-                            df_pred[col] = df_pred[col].astype('category')
-                        
-                        # Make predictions
-                        predictions = model.predict(df_pred)
-                        df['Predicted_Delivery_Time_Minutes'] = predictions
-                        df['Predicted_Hours'] = (predictions // 60).astype(int)
-                        df['Predicted_Minutes_Remaining'] = (predictions % 60).astype(int)
-                        
-                        # Store in session state AFTER predictions are added
-                        st.session_state.bulk_prediction_result = df
+                # Check if we need to clear previous results when new file is uploaded
+                if 'last_uploaded_file_name' not in st.session_state:
+                    st.session_state.last_uploaded_file_name = None
+                
+                if st.session_state.last_uploaded_file_name != uploaded_file.name:
+                    st.session_state.bulk_prediction_result = None
+                    st.session_state.last_uploaded_file_name = uploaded_file.name
+                
+                # Only show button if predictions haven't been generated yet
+                if (st.session_state.bulk_prediction_result is None or 
+                    'Predicted_Delivery_Time_Minutes' not in st.session_state.bulk_prediction_result.columns):
+                    
+                    if st.button("Generate Predictions", use_container_width=True, key="generate_bulk"):
+                        with st.spinner("Processing predictions..."):
+                            # Calculate distance for all rows
+                            df['Distance'] = df.apply(lambda row: haversine(
+                                row['Store_Latitude'], row['Store_Longitude'],
+                                row['Drop_Latitude'], row['Drop_Longitude']
+                            ), axis=1)
+                            
+                            # Create distance bins
+                            max_distance = df['Distance'].max()
+                            if max_distance <= 0:
+                                st.error("All calculated distances are zero or negative. Please check coordinates.")
+                                st.stop()
+                            
+                            # Create bins that ensure monotonic increase
+                            if max_distance <= 5:
+                                bins = [0, max_distance + 0.1]
+                                labels = ['0_5km']
+                            elif max_distance <= 10:
+                                bins = [0, 5, max_distance + 0.1]
+                                labels = ['0_5km', '5_10km']
+                            elif max_distance <= 15:
+                                bins = [0, 5, 10, max_distance + 0.1]
+                                labels = ['0_5km', '5_10km', '10_15km']
+                            elif max_distance <= 20:
+                                bins = [0, 5, 10, 15, max_distance + 0.1]
+                                labels = ['0_5km', '5_10km', '10_15km', '15_20km']
+                            else:
+                                bins = [0, 5, 10, 15, 20, max_distance + 0.1]
+                                labels = ['0_5km', '5_10km', '10_15km', '15_20km', '20+km']
+                            
+                            df['Distance_Bin'] = pd.cut(df['Distance'], bins=bins, labels=labels, right=False)
+                            df['Distance_Bin'] = df['Distance_Bin'].astype(str)
+                            
+                            # Reorder columns to match training order
+                            feature_order = [
+                                'Agent_Age', 'Agent_Rating', 
+                                'Store_Latitude', 'Store_Longitude',
+                                'Drop_Latitude', 'Drop_Longitude',
+                                'Distance', 'Hour', 'Month', 'Prep_Time_Min',
+                                'Weather', 'Traffic', 'Vehicle', 'Area', 
+                                'Category', 'Distance_Bin', 'DayOfWeek'
+                            ]
+                            
+                            # Check for missing columns
+                            missing_cols = [col for col in feature_order if col not in df.columns]
+                            if missing_cols:
+                                st.error(f"Missing required columns: {missing_cols}")
+                                st.stop()
+                            
+                            # Create prediction DataFrame with exact feature order
+                            df_pred = df[feature_order].copy()
+                            
+                            # Convert categorical columns to category dtype
+                            categorical_cols = ['Weather', 'Traffic', 'Vehicle', 'Area', 'Category', 'Distance_Bin', 'DayOfWeek']
+                            for col in categorical_cols:
+                                df_pred[col] = df_pred[col].astype('category')
+                            
+                            # Make predictions
+                            predictions = model.predict(df_pred)
+                            df['Predicted_Delivery_Time_Minutes'] = predictions
+                            df['Predicted_Hours'] = (predictions // 60).astype(int)
+                            df['Predicted_Minutes_Remaining'] = (predictions % 60).astype(int)
+                            
+                            # Store in session state AFTER predictions are added
+                            st.session_state.bulk_prediction_result = df
+                            st.rerun()  # Force rerun to show results
                 
                 # Display results from session state ONLY if predictions exist
                 if (st.session_state.bulk_prediction_result is not None and 
                     'Predicted_Delivery_Time_Minutes' in st.session_state.bulk_prediction_result.columns):
-                    df = st.session_state.bulk_prediction_result
+                    df_results = st.session_state.bulk_prediction_result
                     
                     st.success("Predictions completed!")
                     
                     st.markdown("### Prediction Results")
                     
                     col1, col2, col3, col4 = st.columns(4)
-                    with col1: st.metric("Total Orders", f"{len(df):,}")
-                    with col2: st.metric("Avg Time", f"{df['Predicted_Delivery_Time_Minutes'].mean():.1f} min")
-                    with col3: st.metric("Min Time", f"{df['Predicted_Delivery_Time_Minutes'].min():.1f} min")
-                    with col4: st.metric("Max Time", f"{df['Predicted_Delivery_Time_Minutes'].max():.1f} min")
+                    with col1: st.metric("Total Orders", f"{len(df_results):,}")
+                    with col2: st.metric("Avg Time", f"{df_results['Predicted_Delivery_Time_Minutes'].mean():.1f} min")
+                    with col3: st.metric("Min Time", f"{df_results['Predicted_Delivery_Time_Minutes'].min():.1f} min")
+                    with col4: st.metric("Max Time", f"{df_results['Predicted_Delivery_Time_Minutes'].max():.1f} min")
                     
-                    st.dataframe(df[['Agent_Age', 'Distance', 'Weather', 'Traffic', 
+                    st.dataframe(df_results[['Agent_Age', 'Distance', 'Weather', 'Traffic', 
                                     'Category', 'Predicted_Delivery_Time_Minutes', 
                                     'Predicted_Hours', 'Predicted_Minutes_Remaining']], use_container_width=True)
                     
                     st.markdown("### Prediction Distribution")
                     
-                    fig = px.histogram(df, x='Predicted_Delivery_Time_Minutes', nbins=30,
+                    fig = px.histogram(df_results, x='Predicted_Delivery_Time_Minutes', nbins=30,
                                      title="Distribution of Predicted Delivery Times")
                     fig.update_traces(marker_color='#667eea', marker_line_color='white', marker_line_width=1.5)
                     fig.update_layout(
                         xaxis_title="Delivery Time (minutes)", 
                         yaxis_title="Count",
                         template="plotly_white",
-                        font=dict(family="Inter, sans-serif")
+                        font=dict(family="Inter, sans-serif"),
+                        height=400
                     )
                     st.plotly_chart(fig, use_container_width=True)
                     
-                    csv = df.to_csv(index=False)
-                    st.download_button(
-                        label="Download Predictions",
-                        data=csv,
-                        file_name=f"delivery_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv",
-                        use_container_width=True,
-                        key="download_predictions"
-                    )
+                    # Add option to generate new predictions
+                    col1, col2, col3 = st.columns([1, 2, 1])
+                    with col1:
+                        if st.button("Generate New Predictions", use_container_width=True, key="regenerate_bulk"):
+                            st.session_state.bulk_prediction_result = None
+                            st.rerun()
+                    
+                    with col2:
+                        csv_output = df_results.to_csv(index=False)
+                        st.download_button(
+                            label="Download Predictions",
+                            data=csv_output,
+                            file_name=f"delivery_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            mime="text/csv",
+                            use_container_width=True,
+                            key="download_predictions"
+                        )
                     
             except Exception as e:
                 st.error(f"Error processing file: {str(e)}")
@@ -836,7 +864,7 @@ def user_data_analysis_page():
                 st.markdown("#### Distribution Analysis")
                 
                 # Use expander to further optimize loading
-                with st.expander("📊 View Distribution Charts", expanded=True):
+                with st.expander("View Distribution Charts", expanded=True):
                     if 'Delivery_Time' in df.columns:
                         col1, col2 = st.columns(2)
                         with col1:
@@ -868,7 +896,7 @@ def user_data_analysis_page():
             with viz_tab2:
                 st.markdown("#### Relationship Analysis")
                 
-                with st.expander("📈 View Relationship Charts", expanded=True):
+                with st.expander("View Relationship Charts", expanded=True):
                     if 'Distance' in df.columns and 'Delivery_Time' in df.columns:
                         col1, col2 = st.columns(2)
                         with col1:
@@ -917,7 +945,7 @@ def user_data_analysis_page():
             with viz_tab3:
                 st.markdown("#### Time-Based Analysis")
                 
-                with st.expander("🕐 View Time-Based Charts", expanded=True):
+                with st.expander("View Time-Based Charts", expanded=True):
                     col1, col2 = st.columns(2)
                     with col1:
                         if 'Hour' in df.columns:
@@ -951,7 +979,7 @@ def user_data_analysis_page():
             with viz_tab4:
                 st.markdown("#### Geographic Analysis")
                 
-                with st.expander("🗺️ View Geographic Charts", expanded=True):
+                with st.expander("View Geographic Charts", expanded=True):
                     if all(col in df.columns for col in ['Store_Latitude', 'Store_Longitude']):
                         try:
                             col1, col2 = st.columns(2)
@@ -994,7 +1022,7 @@ def user_data_analysis_page():
             
             # Tab 5: Data Quality & Correlation
             with viz_tab5:
-                with st.expander("🔍 View Correlation Matrix", expanded=True):
+                with st.expander("View Correlation Matrix", expanded=True):
                     st.markdown("### Feature Correlation Matrix")
                     numeric_cols = df.select_dtypes(include=['number']).columns
                     if len(numeric_cols) > 1:
@@ -1178,6 +1206,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
