@@ -54,12 +54,9 @@ This project aims to predict Amazon delivery times using machine learning techni
    ```
 ---
 
-## 📈 Future Enhancements
+## Future Enhancements
 
-* **Real-Time Data Integration**: Incorporate real-time GPS, weather, and traffic data to provide dynamic delivery time predictions.
+* Integrate **live GPS, traffic, and weather data** for dynamic predictions.
+* Deploy a **dashboard** for real-time monitoring and analytics.
+* Experiment with **deep learning regression models** for higher accuracy.
 
-* **Deep Learning Models**: Explore the use of deep learning techniques for improved accuracy and scalability.
-
-* **User Interface**: Develop a web-based interface for users to input order details and receive estimated delivery times.
-
----
