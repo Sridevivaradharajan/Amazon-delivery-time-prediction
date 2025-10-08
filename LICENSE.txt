@@ -18,7 +18,3 @@ By exercising the Licensed Rights (defined below), You accept and agree to be bo
 ### 3. Disclaimer
 
 The Licensed Material is provided "as-is" without warranties or conditions of any kind.
-
----
-
-**Full license text and details:** [https://creativecommons.org/licenses/by-nc/4.0/](https://creativecommons.org/licenses/by-nc/4.0/)
