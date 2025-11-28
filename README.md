@@ -60,13 +60,4 @@ This project aims to predict Amazon delivery times using machine learning techni
 * Deploy a **dashboard** for real-time monitoring and analytics.
 * Experiment with **deep learning regression models** for higher accuracy.
 
----
-
-## License
-
-This project is licensed under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**.  
-You may **use, share, and adapt** it for **non-commercial purposes only**.  
-[View full license](https://creativecommons.org/licenses/by-nc/4.0/)
-
-
 
